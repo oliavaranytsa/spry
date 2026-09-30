@@ -11,7 +11,7 @@ class MeetingBase(BaseModel):
     attendee_count: int = Field(..., ge=1)
 
     @model_validator(mode="after")
-    def validate_ends_at(self) -> "MeetingBase":
+    def validate_ends_at(self) -> MeetingBase:
         if self.ends_at <= self.starts_at:
             raise ValueError("ends_at must be strictly later than starts_at")
         return self

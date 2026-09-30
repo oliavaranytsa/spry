@@ -22,7 +22,9 @@ export const metadata: Metadata = {
   description: "FastAPI + Next.js + Postgres starter",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html
       lang="en"

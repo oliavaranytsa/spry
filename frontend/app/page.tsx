@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Calendar, Clock, Plus, Users } from "lucide-react";
 
 interface Meeting {
@@ -10,6 +10,8 @@ interface Meeting {
   ends_at: string;
   attendee_count: number;
 }
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function MeetingsPage() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
@@ -23,31 +25,27 @@ export default function MeetingsPage() {
   const [endsAt, setEndsAt] = useState("");
   const [attendeeCount, setAttendeeCount] = useState(1);
 
-  const getApiUrl = () => {
-    return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-  };
-
-  const fetchMeetings = async () => {
+  const fetchMeetings = useCallback(async () => {
     try {
-      setLoading(true);
-      setError(null);
-      const res = await fetch(`${getApiUrl()}/api/meetings`);
+      const res = await fetch(`${API_URL}/api/meetings`);
       if (!res.ok) {
         throw new Error(`Failed to fetch meetings: ${res.statusText}`);
       }
-      const data = await res.json();
-      setMeetings(data);
-    } catch (err: any) {
+      setMeetings(await res.json());
+      setError(null);
+    } catch (err) {
       console.error(err);
-      setError(err.message || "Failed to load meetings");
+      setError(err instanceof Error ? err.message : "Failed to load meetings");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
+    // Loading data on mount; setState runs after the await.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchMeetings();
-  }, []);
+  }, [fetchMeetings]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,7 +65,7 @@ export default function MeetingsPage() {
     try {
       setSubmitting(true);
       setError(null);
-      const res = await fetch(`${getApiUrl()}/api/meetings`, {
+      const res = await fetch(`${API_URL}/api/meetings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -90,9 +88,9 @@ export default function MeetingsPage() {
       setAttendeeCount(1);
       // Reload meetings
       await fetchMeetings();
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setError(err.message || "Failed to create meeting");
+      setError(err instanceof Error ? err.message : "Failed to create meeting");
     } finally {
       setSubmitting(false);
     }
@@ -141,7 +139,9 @@ export default function MeetingsPage() {
           <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm sticky top-8">
             <div className="flex items-center gap-2 mb-4 pb-2 border-b">
               <Plus className="w-5 h-5 text-blue-600" />
-              <h2 className="font-semibold text-base text-slate-800">New Meeting</h2>
+              <h2 className="font-semibold text-base text-slate-800">
+                New Meeting
+              </h2>
             </div>
 
             {error && (
@@ -200,7 +200,9 @@ export default function MeetingsPage() {
                   min="1"
                   required
                   value={attendeeCount}
-                  onChange={(e) => setAttendeeCount(Math.max(1, parseInt(e.target.value) || 1))}
+                  onChange={(e) =>
+                    setAttendeeCount(Math.max(1, parseInt(e.target.value) || 1))
+                  }
                   className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -237,7 +239,9 @@ export default function MeetingsPage() {
           ) : meetings.length === 0 ? (
             <div className="p-12 text-center bg-white border border-slate-200 border-dashed rounded-xl">
               <Calendar className="w-10 h-10 mx-auto text-slate-400 mb-3" />
-              <h3 className="font-semibold text-slate-700 mb-1">No meetings yet</h3>
+              <h3 className="font-semibold text-slate-700 mb-1">
+                No meetings yet
+              </h3>
               <p className="text-sm text-slate-500">
                 Use the form to schedule your first meeting.
               </p>
@@ -251,7 +255,9 @@ export default function MeetingsPage() {
                 >
                   <div className="flex items-start justify-between">
                     <div>
-                      <h3 className="font-semibold text-base text-slate-900">{m.title}</h3>
+                      <h3 className="font-semibold text-base text-slate-900">
+                        {m.title}
+                      </h3>
                       <div className="flex items-center gap-4 mt-2 text-xs text-slate-600">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3.5 h-3.5 text-slate-400" />
@@ -263,7 +269,8 @@ export default function MeetingsPage() {
                         </span>
                         <span className="flex items-center gap-1">
                           <Users className="w-3.5 h-3.5 text-slate-400" />
-                          {m.attendee_count} {m.attendee_count === 1 ? "attendee" : "attendees"}
+                          {m.attendee_count}{" "}
+                          {m.attendee_count === 1 ? "attendee" : "attendees"}
                         </span>
                       </div>
                     </div>
