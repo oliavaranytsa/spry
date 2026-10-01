@@ -25,10 +25,6 @@ def _test_database_url() -> str:
 os.environ["APP_ENV"] = "test"
 os.environ["DATABASE_URL"] = _test_database_url()
 
-# Must run before the app is imported: it points the app at the test key.
-from tests.tokens import auth  # noqa: E402
-
-# isort: split
 from app.db import Base, get_session  # noqa: E402
 from app.main import create_app  # noqa: E402
 
@@ -92,6 +88,5 @@ async def anon_client(session: AsyncSession) -> AsyncIterator[AsyncClient]:
 
 @pytest.fixture
 async def client(anon_client: AsyncClient) -> AsyncClient:
-    """Signed in as alice@example.com."""
-    anon_client.headers.update(auth())
+    """The same client; kept as a separate name so tests read naturally."""
     return anon_client

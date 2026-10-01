@@ -1,7 +1,7 @@
 name: Deploy backend
 
-# Write "deploy" in a commit message on main and this ships the backend.
-# Nothing else on main triggers it, so ordinary commits stay cheap.
+# On every push to main: lint and test the backend, then build the image, push
+# it to ECR tagged with the commit SHA, and roll the Lambda function to it.
 on:
   push:
     branches: [main]
@@ -14,13 +14,58 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  lint:
+    name: Lint backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - run: uv python install 3.14
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+
+  test:
+    name: Test backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: spry
+          POSTGRES_PASSWORD: spry
+          POSTGRES_DB: spry
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U spry"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql+asyncpg://spry:spry@localhost:5432/spry_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - run: uv python install 3.14
+      - run: uv sync --frozen
+      - run: uv run pytest -q
+
   deploy:
     name: Lambda
-    # GitHub compares strings case-insensitively, so "Deploy" and "redeployed"
-    # match too. Manual runs skip the check entirely.
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      contains(github.event.head_commit.message, 'deploy')
+    needs: [lint, test]
     runs-on: ubuntu-latest
     permissions:
       # Required to fetch the OIDC token that AWS trades for the role. The job
@@ -38,8 +83,7 @@ jobs:
           role-session-name: gha-deploy-backend-${{ github.run_id }}
 
       # The function runs on arm64 and this runner is x86, so the image is
-      # built under emulation. Swapping to a `ubuntu-24.04-arm`
-      # runner makes it native, and these two steps unnecessary.
+      # built under emulation (slower, but it works).
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
 
@@ -47,9 +91,6 @@ jobs:
         run: make deploy-backend
         env:
           AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
-          # There is no .env here. Everything else falls back to the script's
-          # defaults, and any parameter left empty keeps whatever the stack
-          # already has - so a deploy from CI will not undo CORS settings.
           PROJECT_NAME: ${{ vars.PROJECT_NAME }}
 
       - name: Summary

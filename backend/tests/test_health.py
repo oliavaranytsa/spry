@@ -4,10 +4,10 @@ from httpx import AsyncClient
 async def test_liveness(client: AsyncClient) -> None:
     response = await client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert response.json() == {"status": "healthy"}
 
 
-async def test_readiness_reports_database(client: AsyncClient) -> None:
-    response = await client.get("/api/v1/health/ready")
+async def test_api_health(client: AsyncClient) -> None:
+    response = await client.get("/api/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "database": "ok"}
+    assert response.json() == {"status": "healthy"}

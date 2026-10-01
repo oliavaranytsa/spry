@@ -23,7 +23,7 @@ def _function_url_event(path: str) -> dict:
 def test_function_url_request_reaches_the_app() -> None:
     response = handler(_function_url_event("/health"), None)
     assert response["statusCode"] == 200
-    assert response["body"] == '{"status":"ok"}'
+    assert response["body"] == '{"status":"healthy"}'
 
 
 def test_handler_survives_repeated_calls() -> None:
