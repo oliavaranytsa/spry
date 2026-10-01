@@ -1,124 +1,175 @@
-# Spry — Repository Specification (PROJECT.md)
+# Spry — repository specification
 
-## 1. Repository Layout & Folder Purposes
+This file describes the repository **as it is built and deployed**. It is the
+reference for contributors and for anything generated from it. Section 9 lists
+where the result differs from the original course brief and why.
+
+## 1. Scope of the first slice
+
+Spry is a meeting manager. The first slice is deliberately small:
+
+- the backend exposes `GET /api/meetings` (list) and `POST /api/meetings` (create);
+- a meeting has an id, a title, a start, an end and an attendee count;
+- the frontend is one page: a list of meetings and a form that adds one.
+
+Nothing else (auth, queues, caches, a second database) is part of the slice.
+
+## 2. Repository layout
 
 ```text
 spry/
-├── backend/                  # FastAPI REST API, SQLAlchemy models, Alembic migrations
-│   ├── alembic/              # Database migration scripts
-│   ├── alembic.ini           # Alembic configuration
+├── backend/                 FastAPI service
 │   ├── app/
-│   │   ├── api/              # API router endpoints (/api/meetings, /api/health)
-│   │   ├── core/             # Database connection, settings, engine
-│   │   ├── models/           # SQLAlchemy ORM models (Meeting)
-│   │   └── schemas/          # Pydantic schemas for request/response validation
-│   ├── Dockerfile            # Container definition pinned to python:3.12-slim
-│   └── requirements.txt      # Pinned Python package dependencies
-├── frontend/                 # React SPA (Vite, Tailwind CSS, shadcn/ui)
-│   ├── src/
-│   │   ├── components/       # shadcn/ui components, MeetingForm, MeetingList
-│   │   ├── lib/              # API client and utility helpers
-│   │   ├── App.tsx           # Single-page interface (list meetings + create form)
-│   │   └── main.tsx          # React application entry point
-│   ├── Dockerfile            # Container definition pinned to node:20-alpine
-│   ├── package.json          # Pinned frontend dependencies
-│   ├── tailwind.config.js    # Tailwind configuration
-│   └── vite.config.ts        # Vite build tool and API proxy config
-├── docs/                     # Architectural decision records
-│   └── decisions.md          # Monorepo architecture decision
-├── docker-compose.yml        # Local orchestration (PostgreSQL, backend, frontend)
-├── Makefile                  # Developer and deployment automation targets
-└── PROJECT.md                # System specification and architecture contracts
+│   │   ├── api/             HTTP layer: routers (meetings, health)
+│   │   ├── schemas/         Pydantic request/response models and validation
+│   │   ├── models/          SQLAlchemy ORM models (Meeting)
+│   │   ├── services/        business logic, kept out of the routers
+│   │   ├── config.py        settings read from the environment
+│   │   ├── db.py            async engine and session dependency
+│   │   ├── main.py          app factory: CORS, routers, health endpoints
+│   │   └── lambda_handler.py  AWS Lambda entry point (Mangum) + migrate action
+│   ├── migrations/          Alembic revisions (versions/0003_create_meetings.py)
+│   ├── tests/               pytest suite (health, meetings, lambda handler)
+│   ├── Dockerfile           stages: builder, dev, runtime, lambda
+│   ├── pyproject.toml       dependencies, ruff and pytest configuration
+│   └── uv.lock              locked dependency versions
+├── frontend/                Next.js app, built as a static export
+│   ├── app/                 the single page (list + form), layout, styles
+│   ├── components/          providers and UI primitives (components/ui)
+│   ├── lib/                 small helpers
+│   ├── tests/               vitest setup
+│   ├── next.config.ts       `standalone` for Docker, `export` for S3
+│   └── Dockerfile           deps, dev, builder, runtime stages
+├── infra/                   CloudFormation: frontend.yaml, backend.yaml, github-oidc.yaml
+├── scripts/                 deploy/destroy scripts the Makefile calls
+├── .github/workflows/       lint.yml, deploy-backend.yml
+├── docs/decisions.md        architecture decisions and their trade-offs
+├── docker-compose.yml       local stack: db, backend, frontend
+├── docker-compose.override.yml   dev overrides (hot reload)
+├── Makefile                 the one place for developer and deploy commands
+└── PROJECT.md               this file
 ```
 
-## 2. Pinned Versions
-- **Base Images**:
-  - Python: `python:3.12-slim`
-  - Node.js: `node:20-alpine`
-  - PostgreSQL: `postgres:16-alpine`
-- **Backend Stack**:
-  - `fastapi==0.110.0`
-  - `uvicorn==0.28.0`
-  - `sqlalchemy==2.0.28`
-  - `alembic==1.13.1`
-  - `psycopg2-binary==2.9.9`
-  - `pydantic==2.6.4`
-- **Frontend Stack**:
-  - `react@18.2.0`
-  - `vite@5.1.6`
-  - `tailwindcss@3.4.1`
-  - `lucide-react@0.358.0`
+Every folder has one job. The backend is split so that HTTP concerns (`api`),
+validation (`schemas`), persistence (`models`, `db`) and rules (`services`)
+can change independently, and so an agent or reviewer can read one layer at a
+time.
 
-## 3. Strict API Contracts
+## 3. Stack and pinned versions
 
-### Meeting Schema
+| Part | Choice | Version |
+|---|---|---|
+| Backend runtime | Python | 3.14 |
+| Backend framework | FastAPI + SQLAlchemy (async, asyncpg) + Alembic | pinned in `backend/uv.lock` |
+| Backend tooling | uv, ruff, pytest | pinned in `backend/uv.lock` |
+| Frontend | Next.js (React), Tailwind, static export | 16.3.4 |
+| Frontend tooling | pnpm, ESLint, Prettier, TypeScript, vitest | pinned in `frontend/pnpm-lock.yaml` |
+| Frontend runtime image | node | 22 (alpine) |
+| Database, local | PostgreSQL | 17 (alpine) |
+| Database, AWS | Aurora PostgreSQL Serverless v2 | 17.4 |
+| Lambda | container image, arm64 | 512 MB, 30 s timeout |
+
+No image or dependency uses `latest`.
+
+## 4. Contracts
+
+### Meeting
+
 ```json
 {
-  "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  "title": "Design Review",
-  "starts_at": "2026-10-01T10:00:00Z",
-  "ends_at": "2026-10-01T11:00:00Z",
-  "attendee_count": 4
+  "id": "string, generated by the server",
+  "title": "string, 1-255 characters",
+  "starts_at": "ISO 8601 date-time",
+  "ends_at": "ISO 8601 date-time, strictly after starts_at",
+  "attendee_count": "integer >= 1"
 }
 ```
 
 ### Endpoints
-1. **`GET /api/meetings`**
-   - **Method**: `GET`
-   - **Description**: Returns all scheduled meetings sorted by `starts_at` ascending.
-   - **Response**: `200 OK`
-     - Body: Array of `Meeting` objects:
-       ```json
-       [
-         {
-           "id": "string (UUID)",
-           "title": "string",
-           "starts_at": "string (ISO 8601, UTC)",
-           "ends_at": "string (ISO 8601, UTC)",
-           "attendee_count": 4
-         }
-       ]
-       ```
 
-2. **`POST /api/meetings`**
-   - **Method**: `POST`
-   - **Description**: Creates a new meeting.
-   - **Request Body**:
-     ```json
-     {
-       "title": "string (min 1, max 255)",
-       "starts_at": "string (ISO 8601)",
-       "ends_at": "string (ISO 8601)",
-       "attendee_count": 1
-     }
-     ```
-   - **Validation Rules**:
-     - `title`: cannot be empty.
-     - `starts_at` and `ends_at`: must be valid ISO 8601 date-time strings.
-     - `ends_at` must be strictly later than `starts_at`.
-     - `attendee_count`: integer >= 1.
-   - **Response**: `201 Created`
-     - Body: Created `Meeting` object with server-generated `id`.
+| Method and path | Request body | Success | Errors |
+|---|---|---|---|
+| `GET /api/meetings` | none | `200`, array of `Meeting`, ordered by `starts_at` ascending | none expected |
+| `POST /api/meetings` | `Meeting` without `id` | `201`, the created `Meeting` with its `id` | `422` when a field is invalid or `ends_at` is not after `starts_at` |
+| `GET /health` | none | `200`, `{"status": "healthy"}` | none |
+| `GET /api/health` | none | `200`, `{"status": "healthy"}` | none |
 
-3. **`GET /api/health`**
-   - **Method**: `GET`
-   - **Response**: `200 OK` (`{"status": "healthy"}`)
+The router is currently also mounted without the `/api` prefix (`/meetings`).
+The frontend only uses `/api/meetings`.
 
-## 4. Docker Compose Services & Readiness Order
+## 5. Local runtime (docker compose)
 
-- **`postgres`**:
-  - Image: `postgres:16-alpine`
-  - Internal port: `5432`
-  - Healthcheck:
-    - Test: `pg_isready -U postgres -d spry`
-    - Interval: `5s`, Timeout: `5s`, Retries: `5`
-- **`backend`**:
-  - Build context: `./backend`
-  - Port mapping: `8000:8000`
-  - Environment: `DATABASE_URL=postgresql://postgres:postgres@postgres:5432/spry`
-  - Dependency: `postgres` with `condition: service_healthy` (ensures PostgreSQL is accepting queries before backend starts)
-  - Startup command: runs `alembic upgrade head` followed by `uvicorn app.main:app --host 0.0.0.0 --port 8000`
-- **`frontend`**:
-  - Build context: `./frontend`
-  - Port mapping: `5173:5173`
-  - Dependency: `backend` with `condition: service_started`
+`docker compose up --build` is the only command a new developer runs, after
+installing Docker Desktop and copying `.env.example` to `.env`.
+
+| Service | Image / build | Port | Depends on | Ready when |
+|---|---|---|---|---|
+| `db` | `postgres:17-alpine` | 5432 | none | `pg_isready` healthcheck passes (every 5 s, 10 retries) |
+| `backend` | `./backend` | 8000 | `db` with `condition: service_healthy` | `curl /health` healthcheck passes (20 s start period) |
+| `frontend` | `./frontend` | 3000 | `backend` with `condition: service_healthy` | container is up; it only serves static files |
+
+`depends_on` alone only orders start-up, which is why the database and the
+backend both expose real healthchecks. Ports can be changed in `.env`.
+
+Migrations are Alembic revisions in `backend/migrations`. Locally they are
+applied with `make migrate`. On AWS the deploy script applies them after every
+deploy (see below), so the schema is never changed by hand.
+
+## 6. AWS runtime
+
+```text
+browser ──HTTPS──▶ CloudFront ──(origin access control)──▶ private S3 bucket   (static frontend)
+browser ──HTTPS──▶ Lambda function URL ──▶ FastAPI (Mangum) ──▶ Aurora Serverless v2
+```
+
+- **Frontend:** `make deploy-frontend` builds the static export against
+  `BACKEND_URL`, uploads hashed assets with a one-year immutable cache and
+  everything else with `max-age=0`, then invalidates the CloudFront cache.
+  The bucket is private; only CloudFront can read it.
+- **Backend:** `make deploy-backend` builds a single-platform `linux/arm64`
+  image, pushes it to ECR tagged with the commit SHA, rolls the function to that
+  tag and invokes it directly with `{"action": "migrate"}`. The function URL
+  gives HTTPS without a custom domain.
+- **Database:** Aurora Serverless v2 in the default VPC, not publicly
+  accessible; its security group accepts traffic only from the function. It
+  pauses to zero capacity after 5 idle minutes, so the first request after a
+  pause can take about 15 seconds.
+- **Stacks:** `spry-frontend`, `spry-backend`, `spry-github-oidc` (all
+  `eu-north-1`), tagged `PROJECT_NAME=spry`.
+
+## 6.1 Tear-down
+
+`make destroy-backend`, `make destroy-frontend`, then delete the
+`spry-github-oidc` stack and the OIDC provider. Aurora and the Secrets Manager
+secret are billed while they exist.
+
+## 7. CI/CD
+
+- `lint.yml` runs on every push: ruff (check + format) for the backend, ESLint,
+  Prettier and `tsc --noEmit` for the frontend.
+- `deploy-backend.yml` runs on every push to `main`: **lint**, **test** (against
+  a real Postgres service container), then **deploy**, which only starts when
+  both are green.
+- The deploy job assumes an IAM role through **GitHub OIDC**. No access key is
+  stored anywhere. The trust policy requires `aud = sts.amazonaws.com` and
+  `sub = repo:oliavaranytsa@270393240/spry@1397346708:ref:refs/heads/main`, so
+  only runs on `main` of this repository can assume the role. The role's
+  permissions are limited to the services the deploy drives and to `spry-*`
+  resource names, not `AdministratorAccess`.
+- The frontend is deployed with `make deploy-frontend`; CI does not deploy it yet.
+- Images are tagged with the commit SHA, so the running version is always known
+  and a rollback is "deploy the previous tag".
+
+## 8. Environment
+
+`.env.example` lists every variable. `.env` is git-ignored and holds no AWS
+credentials; `scripts/deploy-backend.sh` writes `BACKEND_URL` into it.
+
+## 9. Deviations from the course brief
+
+| Brief | Built | Reason |
+|---|---|---|
+| React + Vite | Next.js with static export | the repository was started from the course template, which is Next.js; the export is a static bundle, which is what S3 + CloudFront need |
+| `postgres:16` | PostgreSQL 17 | inherited from the template; Aurora on AWS is 17.4 to match |
+| Backend on ECS Fargate behind an ALB | Lambda container image behind a function URL | no custom domain is required, and the function URL provides HTTPS without one; ALB would need a certificate on a domain or an extra CloudFront layer |
+| Custom domain on HTTPS | default `cloudfront.net` and `lambda-url` hostnames | agreed with the lecturer |
