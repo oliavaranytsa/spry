@@ -111,8 +111,9 @@ installing Docker Desktop and copying `.env.example` to `.env`.
 `depends_on` alone only orders start-up, which is why the database and the
 backend both expose real healthchecks. Ports can be changed in `.env`.
 
-Migrations are Alembic revisions in `backend/migrations`. Locally they are
-applied with `make migrate`. On AWS the deploy script applies them after every
+Migrations are Alembic revisions in `backend/migrations`. In the production image the
+entrypoint (`backend/scripts/entrypoint.sh`) runs `alembic upgrade head` before
+starting Uvicorn; with the dev override use `make migrate`. On AWS the deploy script applies them after every
 deploy (see below), so the schema is never changed by hand.
 
 ## 6. AWS runtime
