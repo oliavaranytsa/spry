@@ -44,10 +44,11 @@ if [[ -z "${REPO}" ]]; then
 fi
 [[ "${REPO}" == */* ]] || die "could not work out the repo - set GITHUB_REPO=owner/repo in .env"
 
+SUBJECT_REPO="${GITHUB_SUBJECT_REPO:-${REPO}}"
 SUBJECT_CLAIM="${GITHUB_SUBJECT_CLAIM:-ref:refs/heads/main}"
 
 log "repository ${REPO}"
-log "trusting only runs matching repo:${REPO}:${SUBJECT_CLAIM}"
+log "trusting only runs matching repo:${SUBJECT_REPO}:${SUBJECT_CLAIM}"
 
 # --- the account may already have a GitHub provider ---------------------------
 
@@ -70,7 +71,7 @@ if ! aws cloudformation deploy \
   --template-file "${TEMPLATE}" \
   --parameter-overrides \
     "ProjectName=${PROJECT_NAME}" \
-    "GitHubRepo=${REPO}" \
+    "GitHubRepo=${SUBJECT_REPO}" \
     "SubjectClaim=${SUBJECT_CLAIM}" \
     "ExistingProviderArn=${EXISTING_PROVIDER}" \
   --capabilities CAPABILITY_NAMED_IAM \
