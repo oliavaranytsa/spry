@@ -25,6 +25,7 @@ def _test_database_url() -> str:
 os.environ["APP_ENV"] = "test"
 os.environ["DATABASE_URL"] = _test_database_url()
 
+from app.auth import User, current_user  # noqa: E402
 from app.db import Base, get_session  # noqa: E402
 from app.main import create_app  # noqa: E402
 
@@ -71,22 +72,30 @@ async def session(engine) -> AsyncIterator[AsyncSession]:
     await connection.close()
 
 
-@pytest.fixture
-async def anon_client(session: AsyncSession) -> AsyncIterator[AsyncClient]:
-    """A client with no credentials."""
+def _app_for(session: AsyncSession, user=None):
     app = create_app()
 
     async def _override() -> AsyncIterator[AsyncSession]:
         yield session
 
     app.dependency_overrides[get_session] = _override
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        yield client
-    app.dependency_overrides.clear()
+    if user is not None:
+        app.dependency_overrides[current_user] = lambda: user
+    return app
 
 
 @pytest.fixture
-async def client(anon_client: AsyncClient) -> AsyncClient:
-    """The same client; kept as a separate name so tests read naturally."""
-    return anon_client
+async def anon_client(session: AsyncSession) -> AsyncIterator[AsyncClient]:
+    """A client with no credentials: protected routes see no user."""
+    transport = ASGITransport(app=_app_for(session))
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        yield client
+
+
+@pytest.fixture
+async def client(session: AsyncSession) -> AsyncIterator[AsyncClient]:
+    """A signed-in client. Token checking itself is covered in test_auth.py."""
+    user = User(sub="test-user", username="test-user", email="test@example.com")
+    transport = ASGITransport(app=_app_for(session, user))
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        yield client

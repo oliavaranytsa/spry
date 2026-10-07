@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { Calendar, Clock, Plus, Users } from "lucide-react";
+import { useAuth } from "react-oidc-context";
 
 import { AuthStatus } from "@/components/auth-status";
 
@@ -16,6 +18,11 @@ interface Meeting {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function MeetingsPage() {
+  const auth = useAuth();
+  // The API answers 401 without this; see backend/app/auth.py.
+  const token = auth.user?.access_token;
+  const signedOut = !auth.isLoading && !auth.isAuthenticated;
+
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -28,8 +35,19 @@ export default function MeetingsPage() {
   const [attendeeCount, setAttendeeCount] = useState(1);
 
   const fetchMeetings = useCallback(async () => {
+    if (!token) {
+      // Nothing to ask the API for until someone signs in.
+      setMeetings([]);
+      setLoading(false);
+      return;
+    }
     try {
-      const res = await fetch(`${API_URL}/api/meetings`);
+      const res = await fetch(`${API_URL}/api/meetings`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.status === 401) {
+        throw new Error("Your session has expired. Please sign in again.");
+      }
       if (!res.ok) {
         throw new Error(`Failed to fetch meetings: ${res.statusText}`);
       }
@@ -41,16 +59,21 @@ export default function MeetingsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [token]);
 
   useEffect(() => {
-    // Loading data on mount; setState runs after the await.
+    // Wait until the stored session is read, then load (or clear) the list.
+    if (auth.isLoading) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchMeetings();
-  }, [fetchMeetings]);
+  }, [auth.isLoading, fetchMeetings]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!token) {
+      setError("Sign in to schedule a meeting.");
+      return;
+    }
     if (!title || !startsAt || !endsAt) {
       setError("Please fill in all required fields.");
       return;
@@ -69,7 +92,10 @@ export default function MeetingsPage() {
       setError(null);
       const res = await fetch(`${API_URL}/api/meetings`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           title,
           starts_at: startIso,
@@ -214,7 +240,7 @@ export default function MeetingsPage() {
 
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={submitting || !token}
                 className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg text-sm transition-colors shadow-sm disabled:opacity-50"
               >
                 {submitting ? "Scheduling..." : "Schedule Meeting"}
@@ -237,7 +263,22 @@ export default function MeetingsPage() {
             </button>
           </div>
 
-          {loading ? (
+          {signedOut ? (
+            <div className="p-12 text-center bg-white border border-slate-200 border-dashed rounded-xl">
+              <h3 className="font-semibold text-slate-700 mb-1">
+                Sign in to see meetings
+              </h3>
+              <p className="text-sm text-slate-500 mb-4">
+                The meetings API only answers signed-in users.
+              </p>
+              <Link
+                href="/login"
+                className="text-sm bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+              >
+                Sign in
+              </Link>
+            </div>
+          ) : loading ? (
             <div className="p-8 text-center text-slate-500 bg-white border border-slate-200 rounded-xl">
               Loading meetings...
             </div>

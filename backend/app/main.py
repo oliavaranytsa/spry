@@ -1,7 +1,8 @@
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import meetings
+from app.auth import current_user
 
 
 def create_app() -> FastAPI:
@@ -26,9 +27,12 @@ def create_app() -> FastAPI:
     async def health() -> dict[str, str]:
         return {"status": "healthy"}
 
-    # Mount endpoints under /api/meetings and /meetings for flexible client access
-    app.include_router(meetings.router, prefix="/api")
-    app.include_router(meetings.router)
+    # Mount endpoints under /api/meetings and /meetings for flexible client access.
+    # Both need a signed-in user: declared on the include, so a route added to
+    # the router later cannot end up unprotected. /health stays public.
+    signed_in = [Depends(current_user)]
+    app.include_router(meetings.router, prefix="/api", dependencies=signed_in)
+    app.include_router(meetings.router, dependencies=signed_in)
     return app
 
 
