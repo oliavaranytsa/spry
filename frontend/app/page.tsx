@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Calendar, Clock, Plus, Users } from "lucide-react";
 
+import { AuthStatus } from "@/components/auth-status";
+
 interface Meeting {
   id: string;
   title: string;
@@ -126,9 +128,12 @@ export default function MeetingsPage() {
               <p className="text-xs text-slate-500">Meeting Management</p>
             </div>
           </div>
-          <div className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-medium flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            Online
+          <div className="flex items-center gap-4">
+            <div className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full font-medium flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              Online
+            </div>
+            <AuthStatus />
           </div>
         </div>
       </header>

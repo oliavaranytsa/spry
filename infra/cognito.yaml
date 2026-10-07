@@ -1,0 +1,154 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: >-
+  Sign-in for the frontend: a Cognito user pool with self sign-up by email and
+  password, Google as a federated identity provider, and Cognito's managed
+  login page on a prefix domain. Deployed by scripts/deploy-cognito.sh, which
+  writes the pool and client ids into .env for the frontend build.
+
+  Essentials tier: managed login needs it, and the first 10,000 monthly active
+  users are free.
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: peach
+
+  DomainPrefix:
+    Type: String
+    AllowedPattern: "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+    Description: >-
+      https://<prefix>.auth.<region>.amazoncognito.com. Unique within the
+      region; may not contain "aws", "amazon" or "cognito". The Google OAuth
+      client's redirect URI points at this domain, so choose it first.
+
+  CallbackUrls:
+    Type: CommaDelimitedList
+    Description: >-
+      Where Cognito may send the browser back with ?code=. Matched exactly,
+      trailing slash included.
+
+  LogoutUrls:
+    Type: CommaDelimitedList
+
+  GoogleClientId:
+    Type: String
+    Default: ""
+    Description: Empty means email and password only.
+
+  GoogleClientSecret:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: Never in the repository or the frontend build; comes from .env.
+
+Conditions:
+  HasGoogle: !Not [!Equals [!Ref GoogleClientId, ""]]
+
+Resources:
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub "${ProjectName}-users"
+      # Sign in with an email; there is no separate username.
+      UsernameAttributes: [email]
+      # Cognito emails a confirmation code on sign-up.
+      AutoVerifiedAttributes: [email]
+      AdminCreateUserConfig:
+        # Self sign-up stays on, so anyone (the lecturer too) can register.
+        AllowAdminCreateUserOnly: false
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireUppercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+          TemporaryPasswordValidityDays: 7
+      UserPoolTier: ESSENTIALS
+      # Off, so make destroy-cognito can actually delete the pool.
+      DeletionProtection: INACTIVE
+      UserPoolTags:
+        PROJECT_NAME: !Ref ProjectName
+
+  GoogleIdentityProvider:
+    Type: AWS::Cognito::UserPoolIdentityProvider
+    Condition: HasGoogle
+    Properties:
+      UserPoolId: !Ref UserPool
+      ProviderName: Google
+      ProviderType: Google
+      ProviderDetails:
+        client_id: !Ref GoogleClientId
+        client_secret: !Ref GoogleClientSecret
+        authorize_scopes: openid email profile
+      # Without these a Google user arrives with no email for the header.
+      AttributeMapping:
+        email: email
+        email_verified: email_verified
+        name: name
+
+  # A public client: a browser cannot keep a secret, so it gets none and uses
+  # the authorization code flow with PKCE instead.
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub "${ProjectName}-web"
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows: [code]
+      AllowedOAuthScopes: [openid, email, profile]
+      # Referencing the Google provider (rather than the literal string) is
+      # what makes the client wait for it: a client naming a provider that does
+      # not exist yet fails to create. It plays the role of DependsOn, which
+      # cannot point at a resource that is switched off by a condition.
+      SupportedIdentityProviders: !If
+        - HasGoogle
+        - [COGNITO, !Ref GoogleIdentityProvider]
+        - [COGNITO]
+      CallbackURLs: !Ref CallbackUrls
+      LogoutURLs: !Ref LogoutUrls
+      ExplicitAuthFlows: [ALLOW_REFRESH_TOKEN_AUTH, ALLOW_USER_SRP_AUTH]
+      PreventUserExistenceErrors: ENABLED
+
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      UserPoolId: !Ref UserPool
+      Domain: !Ref DomainPrefix
+      ManagedLoginVersion: 2
+
+  # A version 2 domain shows no sign-in page until it has a style.
+  ManagedLoginBranding:
+    Type: AWS::Cognito::ManagedLoginBranding
+    DependsOn: UserPoolDomain
+    Properties:
+      UserPoolId: !Ref UserPool
+      ClientId: !Ref UserPoolClient
+      UseCognitoProvidedValues: true
+
+Outputs:
+  UserPoolId:
+    Value: !Ref UserPool
+
+  ClientId:
+    Value: !Ref UserPoolClient
+
+  Domain:
+    Description: The managed login host, without https://.
+    Value: !Sub "${DomainPrefix}.auth.${AWS::Region}.amazoncognito.com"
+
+  Issuer:
+    Value: !Sub "https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}"
+
+  GoogleRedirectUri:
+    Description: The Google OAuth client's authorised redirect URI.
+    Value: !Sub "https://${DomainPrefix}.auth.${AWS::Region}.amazoncognito.com/oauth2/idpresponse"
+
+  GoogleEnabled:
+    Value: !If [HasGoogle, "true", "false"]
