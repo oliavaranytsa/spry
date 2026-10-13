@@ -325,6 +325,18 @@ if [[ -n "${FUNCTION_ERROR}" && "${FUNCTION_ERROR}" != "None" ]]; then
   die "migrations failed - see: make logs-backend"
 fi
 
+# --- report builder ---------------------------------------------------------
+
+# The weekly-report builder (infra/reports.yaml) runs this same image with
+# another command. Move it to the new image too: ECR keeps only the last three,
+# and a builder left on an expired tag stops working a few deploys later.
+REPORT_BUILDER="${PROJECT_NAME}-report-builder"
+if aws lambda get-function --function-name "${REPORT_BUILDER}" >/dev/null 2>&1; then
+  log "moving ${REPORT_BUILDER} to the new image"
+  aws lambda update-function-code --function-name "${REPORT_BUILDER}" \
+    --image-uri "${IMAGE_URI}" --query LastUpdateStatus --output text >/dev/null
+fi
+
 # --- report -----------------------------------------------------------------
 
 API_URL="$(outputs ApiUrl)"

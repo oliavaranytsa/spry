@@ -1,6 +1,6 @@
 COMPOSE := docker compose
 
-.PHONY: help up down build logs ps migrate revision test test-backend test-frontend lint fmt clean shell-backend shell-db deploy-cognito destroy-cognito deploy-backend destroy-backend logs-backend migrate-backend cert domain deploy-frontend destroy-frontend github-role
+.PHONY: help up down build logs ps migrate revision test test-backend test-frontend lint fmt clean shell-backend shell-db deploy-cognito destroy-cognito deploy-backend destroy-backend logs-backend migrate-backend cert domain deploy-frontend destroy-frontend github-role deploy-reports destroy-reports report-now logs-reports
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
@@ -67,7 +67,7 @@ logs-backend: ## Tail the deployed backend's CloudWatch logs
 	aws logs tail /aws/lambda/$${PROJECT_NAME:-peach}-backend --follow --since 10m
 
 migrate-backend: ## Re-run migrations on the deployed backend (deploy-backend already does)
-	aws lambda invoke --function-name $${PROJECT_NAME:-peach}-backend \
+	set -a; . ./.env; set +a; aws lambda invoke --function-name $${PROJECT_NAME:-peach}-backend \
 		--cli-binary-format raw-in-base64-out --payload '{"action":"migrate"}' /dev/stdout
 
 cert: ## Request + DNS-validate a us-east-1 certificate for the frontend: make cert DOMAIN=app.example.com
@@ -84,3 +84,15 @@ destroy-frontend: ## Delete the frontend stack (bucket + distribution)
 
 github-role: ## Create the IAM role GitHub Actions assumes to deploy (OIDC, no keys)
 	./scripts/github-role.sh
+
+deploy-reports: ## Weekly report: queue, schedule, builder + mailer Lambdas, bucket, SES (after deploy-backend)
+	./scripts/deploy-reports.sh
+
+destroy-reports: ## Delete the report stack, the reports bucket included
+	./scripts/destroy-reports.sh
+
+report-now: ## Build a report on demand through the queue: make report-now WEEK=2026-W39
+	./scripts/report-now.sh
+
+logs-reports: ## Which event started each report run, from CloudWatch: SINCE=24h make logs-reports
+	./scripts/logs-reports.sh
