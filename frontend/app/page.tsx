@@ -8,7 +8,9 @@ import { useAuth } from "react-oidc-context";
 import { AgendaPanel } from "@/components/agenda-panel";
 import { AuthStatus } from "@/components/auth-status";
 import { SpryMascot } from "@/components/spry-mascot";
+import { WakingUp } from "@/components/waking-up";
 import type { Agenda } from "@/lib/agenda";
+import { groupByWeek } from "@/lib/weeks";
 
 interface Meeting {
   id: string;
@@ -144,6 +146,64 @@ export default function MeetingsPage() {
   const label =
     "block text-xs font-bold text-ink uppercase tracking-wider mb-1.5";
 
+  const groups = groupByWeek(meetings);
+  const thisWeekCount = groups.find((g) => g.key === "this")?.items.length ?? 0;
+  const upcomingCount = groups
+    .filter((g) => g.key !== "earlier")
+    .reduce((n, g) => n + g.items.length, 0);
+
+  const renderMeeting = (m: Meeting) => (
+    <article
+      key={m.id}
+      className="bg-paper p-5 rounded-3xl border-2 border-ink shadow-sticker"
+    >
+      <div className="flex items-start gap-4">
+        <div className="shrink-0 w-16 rounded-2xl bg-ink text-cream text-center py-2 border-2 border-ink">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-lime">
+            {weekday(m.starts_at)}
+          </div>
+          <div className="font-display text-3xl font-extrabold leading-none">
+            {day(m.starts_at)}
+          </div>
+          <div className="text-[11px] font-bold uppercase">
+            {month(m.starts_at)}
+          </div>
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="font-display font-extrabold text-xl leading-tight break-words">
+              {m.title}
+            </h3>
+            <span className="shrink-0 text-[11px] font-bold bg-lime text-ink px-2.5 py-1 rounded-full border-2 border-ink">
+              Confirmed
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 mt-2.5 text-xs font-semibold">
+            <span className="flex items-center gap-1 bg-ink-soft px-2.5 py-1 rounded-full">
+              <Clock className="w-3.5 h-3.5" strokeWidth={2.5} />
+              {formatTime(m.starts_at)} – {formatTime(m.ends_at)}
+            </span>
+            <span className="flex items-center gap-1 bg-ink-soft px-2.5 py-1 rounded-full">
+              <Users className="w-3.5 h-3.5" strokeWidth={2.5} />
+              {m.attendee_count}{" "}
+              {m.attendee_count === 1 ? "attendee" : "attendees"}
+            </span>
+          </div>
+        </div>
+      </div>
+      <AgendaPanel
+        meetingId={m.id}
+        agenda={m.agenda}
+        token={token}
+        onSaved={(agenda) =>
+          setMeetings((list) =>
+            list.map((x) => (x.id === m.id ? { ...x, agenda } : x)),
+          )
+        }
+      />
+    </article>
+  );
+
   return (
     <div className="min-h-screen bg-cream text-ink">
       <header className="bg-ink text-cream">
@@ -152,7 +212,7 @@ export default function MeetingsPage() {
             <SpryMascot className="w-11 h-11" />
             <div>
               <h1 className="font-display text-2xl font-extrabold leading-none tracking-tight">
-                Spry
+                Peach
               </h1>
               <p className="text-[11px] text-cream/70 mt-0.5">
                 meetings, sorted
@@ -171,9 +231,11 @@ export default function MeetingsPage() {
           <h2 className="font-display text-4xl md:text-5xl font-extrabold leading-[1.05] mt-2">
             {signedOut
               ? "Sign in, and let's get your week in order."
-              : meetings.length === 0
-                ? "A clear week. Plan something?"
-                : `${meetings.length} ${meetings.length === 1 ? "meeting" : "meetings"} on the board.`}
+              : thisWeekCount > 0
+                ? `${thisWeekCount} ${thisWeekCount === 1 ? "meeting" : "meetings"} this week.`
+                : upcomingCount > 0
+                  ? `A clear week. ${upcomingCount} coming up.`
+                  : "A clear week. Plan something?"}
           </h2>
         </div>
         <SpryMascot className="hidden md:block w-28 h-28 shrink-0 -mb-2 -rotate-6" />
@@ -293,9 +355,7 @@ export default function MeetingsPage() {
               </Link>
             </div>
           ) : loading ? (
-            <div className="p-8 text-center text-ink/70 bg-paper border-2 border-ink rounded-3xl">
-              Loading meetings…
-            </div>
+            <WakingUp />
           ) : meetings.length === 0 ? (
             <div className="p-10 text-center bg-paper border-2 border-dashed border-ink rounded-3xl">
               <SpryMascot className="w-24 h-24 mx-auto mb-3" />
@@ -307,58 +367,46 @@ export default function MeetingsPage() {
               </p>
             </div>
           ) : (
-            <div className="grid gap-5">
-              {meetings.map((m) => (
-                <article
-                  key={m.id}
-                  className="bg-paper p-5 rounded-3xl border-2 border-ink shadow-sticker"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="shrink-0 w-16 rounded-2xl bg-ink text-cream text-center py-2 border-2 border-ink">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-lime">
-                        {weekday(m.starts_at)}
-                      </div>
-                      <div className="font-display text-3xl font-extrabold leading-none">
-                        {day(m.starts_at)}
-                      </div>
-                      <div className="text-[11px] font-bold uppercase">
-                        {month(m.starts_at)}
-                      </div>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-3">
-                        <h3 className="font-display font-extrabold text-xl leading-tight break-words">
-                          {m.title}
-                        </h3>
-                        <span className="shrink-0 text-[11px] font-bold bg-lime text-ink px-2.5 py-1 rounded-full border-2 border-ink">
-                          Confirmed
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2 mt-2.5 text-xs font-semibold">
-                        <span className="flex items-center gap-1 bg-ink-soft px-2.5 py-1 rounded-full">
-                          <Clock className="w-3.5 h-3.5" strokeWidth={2.5} />
-                          {formatTime(m.starts_at)} – {formatTime(m.ends_at)}
-                        </span>
-                        <span className="flex items-center gap-1 bg-ink-soft px-2.5 py-1 rounded-full">
-                          <Users className="w-3.5 h-3.5" strokeWidth={2.5} />
-                          {m.attendee_count}{" "}
-                          {m.attendee_count === 1 ? "attendee" : "attendees"}
-                        </span>
-                      </div>
-                    </div>
+            <div className="space-y-8">
+              {groups.map((g) => {
+                const header = (
+                  <div className="flex items-baseline gap-3">
+                    <span
+                      className={`font-display font-extrabold text-lg px-3 py-0.5 rounded-full border-2 border-ink ${
+                        g.key === "this" ? "bg-lime" : "bg-paper"
+                      }`}
+                    >
+                      {g.label}
+                    </span>
+                    <span className="text-xs font-bold text-ink/60">
+                      {g.range} · {g.items.length}{" "}
+                      {g.items.length === 1 ? "meeting" : "meetings"}
+                    </span>
                   </div>
-                  <AgendaPanel
-                    meetingId={m.id}
-                    agenda={m.agenda}
-                    token={token}
-                    onSaved={(agenda) =>
-                      setMeetings((list) =>
-                        list.map((x) => (x.id === m.id ? { ...x, agenda } : x)),
-                      )
-                    }
-                  />
-                </article>
-              ))}
+                );
+                const cards = (
+                  <div className="grid gap-5 mt-4">
+                    {g.items.map(renderMeeting)}
+                  </div>
+                );
+                // Past weeks fold away so the board shows what is coming.
+                return g.key === "earlier" ? (
+                  <details key={g.key} className="group">
+                    <summary className="cursor-pointer list-none flex items-center gap-2 [&::-webkit-details-marker]:hidden">
+                      {header}
+                      <span className="text-xs font-bold text-ink underline underline-offset-4 group-open:hidden">
+                        show
+                      </span>
+                    </summary>
+                    <div className="opacity-80">{cards}</div>
+                  </details>
+                ) : (
+                  <section key={g.key}>
+                    {header}
+                    {cards}
+                  </section>
+                );
+              })}
             </div>
           )}
         </div>

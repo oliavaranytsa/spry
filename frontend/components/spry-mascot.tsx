@@ -1,4 +1,4 @@
-// Spry's mascot: a small, busy sparrow with a clipboard, waving hello.
+// Peach's mascot: a small, busy sparrow with a clipboard, waving hello.
 // Drawn as a sticker: cream fill, thick ink outline, a cream halo around it.
 
 const INK = "#2f3a8f";
@@ -8,7 +8,7 @@ const CORAL = "#f27b5b";
 
 export function SpryMascot({
   className,
-  title = "Spry the sparrow",
+  title = "Peach the sparrow",
 }: {
   className?: string;
   title?: string;

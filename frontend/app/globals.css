@@ -227,7 +227,7 @@
   @apply rounded-xl border border-border bg-card;
 }
 
-/* Spry's own look: cobalt ink on warm paper, a lime highlight, a coral
+/* Peach's own look: cobalt ink on warm paper, a lime highlight, a coral
    warning, and thick outlines with a hard offset shadow, like a sticker. */
 @theme {
   --color-ink: #2f3a8f;

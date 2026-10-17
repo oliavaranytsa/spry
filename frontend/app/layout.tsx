@@ -25,7 +25,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Spry",
+  title: "Peach",
   description: "Meetings and their agendas, sorted.",
 };
 
