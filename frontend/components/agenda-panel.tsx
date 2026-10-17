@@ -88,12 +88,12 @@ function SuggestedInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className={`${inputClass} ${
-          suggested ? "border-ink bg-lime-soft pr-20" : "border-ink/40 bg-paper"
+          suggested ? "border-ink bg-lime-soft" : "border-ink/40 bg-paper"
         }`}
       />
       {suggested && (
         <span
-          className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-ink bg-lime border-2 border-ink rounded-full px-1.5"
+          className="pointer-events-none absolute -top-2 right-2 text-[9px] leading-none font-bold text-ink bg-lime border-2 border-ink rounded-full px-1.5 py-0.5"
           title="Filled by the model. Check it; the mark goes away when you edit the field."
         >
           suggested
@@ -397,7 +397,7 @@ export function AgendaPanel({
       )}
 
       {/* The agenda form: the same for typed and parsed agendas */}
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="text-xs font-bold text-ink uppercase tracking-wider">
           Agenda items
         </div>
@@ -446,7 +446,7 @@ export function AgendaPanel({
         </button>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="text-xs font-bold text-ink uppercase tracking-wider">
           Action items
         </div>
