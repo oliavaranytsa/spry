@@ -5,8 +5,10 @@ Description: >-
   that turns pasted text into a meeting agenda with Claude on Amazon Bedrock.
   It runs outside the VPC - it needs no database - and reaches Bedrock and
   Cognito's public keys over the internet, with no NAT and no VPC endpoint.
-  It only reads and answers; saving goes through the main API. Also the
-  monthly budget alarm. Deployed by scripts/deploy-ai.sh.
+  It only reads and answers; saving goes through the main API. Deployed by
+  scripts/deploy-ai.sh, which also sets up the monthly budget alarm through
+  the Budgets API: AWS::Budgets::Budget exists in CloudFormation only in
+  us-east-1, and this stack lives wherever the backend does.
 
 Parameters:
   ProjectName:
@@ -54,18 +56,6 @@ Parameters:
   LogRetentionDays:
     Type: Number
     Default: 14
-
-  BudgetEmail:
-    Type: String
-    Default: ""
-    Description: Where the budget alarm goes. Empty skips the budget.
-
-  BudgetLimitUsd:
-    Type: Number
-    Default: 5
-
-Conditions:
-  HasBudget: !Not [!Equals [!Ref BudgetEmail, ""]]
 
 Resources:
 
@@ -166,37 +156,6 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: "*"
       InvokedViaFunctionUrl: true
-
-  # The cheapest insurance in the course: an email when the month's bill
-  # passes the limit, and another when it is forecast to.
-  MonthlyBudget:
-    Type: AWS::Budgets::Budget
-    Condition: HasBudget
-    Properties:
-      Budget:
-        BudgetName: !Sub "${ProjectName}-monthly"
-        BudgetType: COST
-        TimeUnit: MONTHLY
-        BudgetLimit:
-          Amount: !Ref BudgetLimitUsd
-          Unit: USD
-      NotificationsWithSubscribers:
-        - Notification:
-            NotificationType: ACTUAL
-            ComparisonOperator: GREATER_THAN
-            Threshold: 100
-            ThresholdType: PERCENTAGE
-          Subscribers:
-            - SubscriptionType: EMAIL
-              Address: !Ref BudgetEmail
-        - Notification:
-            NotificationType: FORECASTED
-            ComparisonOperator: GREATER_THAN
-            Threshold: 100
-            ThresholdType: PERCENTAGE
-          Subscribers:
-            - SubscriptionType: EMAIL
-              Address: !Ref BudgetEmail
 
 Outputs:
   ParserUrl:

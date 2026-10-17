@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Delete the agenda-parser stack: the function, its URL, its logs and the budget.
+# Delete the agenda-parser stack: the function, its URL and its logs.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -30,4 +30,5 @@ aws cloudformation describe-stacks --stack-name "${STACK_NAME}" >/dev/null 2>&1 
 log "deleting ${STACK_NAME}"
 aws cloudformation delete-stack --stack-name "${STACK_NAME}"
 aws cloudformation wait stack-delete-complete --stack-name "${STACK_NAME}"
-log "done"
+# The budget alarm is left alone: it watches the whole account, not this stack.
+log "done (the ${PROJECT_NAME}-monthly budget alarm stays; delete it in the console if you want)"

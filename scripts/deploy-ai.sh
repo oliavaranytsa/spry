@@ -110,8 +110,6 @@ COGNITO_REGION="${COGNITO_REGION:-${AWS_REGION}}" \
 COGNITO_USER_POOL_ID="${COGNITO_USER_POOL_ID}" \
 COGNITO_CLIENT_ID="${COGNITO_CLIENT_ID}" \
 ORIGINS="${ORIGINS}" \
-BUDGET_EMAIL="${BUDGET_EMAIL}" \
-BUDGET_LIMIT_USD="${BUDGET_LIMIT_USD:-5}" \
 python3 - "${PARAMS_FILE}" <<'PY'
 import json, os, sys
 
@@ -125,9 +123,6 @@ params = {
     "CognitoUserPoolId": os.environ["COGNITO_USER_POOL_ID"],
     "CognitoClientId": os.environ["COGNITO_CLIENT_ID"],
     "AllowedOrigins": os.environ["ORIGINS"],
-    # Always sent: a parameter left out keeps its previous value.
-    "BudgetEmail": os.environ["BUDGET_EMAIL"],
-    "BudgetLimitUsd": os.environ["BUDGET_LIMIT_USD"],
 }
 with open(sys.argv[1], "w") as fh:
     json.dump([{"ParameterKey": k, "ParameterValue": v} for k, v in params.items()], fh)
@@ -162,6 +157,36 @@ outputs() {
 PARSER_URL="$(outputs ParserUrl)"
 env_set PARSER_URL "${PARSER_URL%/}"
 
+# --- the budget alarm -------------------------------------------------------
+
+# Budgets is a global service with one endpoint, in us-east-1. Created here
+# rather than in infra/ai.yml: CloudFormation has AWS::Budgets::Budget only in
+# us-east-1. The cheapest insurance in the course: an email when the month's
+# bill passes the limit, and another when it is forecast to.
+BUDGET_NAME="${PROJECT_NAME}-monthly"
+BUDGET_STATUS="none"
+if [[ -n "${BUDGET_EMAIL}" ]]; then
+  ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+  BUDGET_JSON="{\"BudgetName\":\"${BUDGET_NAME}\",\"BudgetType\":\"COST\",\"TimeUnit\":\"MONTHLY\",\"BudgetLimit\":{\"Amount\":\"${BUDGET_LIMIT_USD:-5}\",\"Unit\":\"USD\"}}"
+  subscriber="{\"SubscriptionType\":\"EMAIL\",\"Address\":\"${BUDGET_EMAIL}\"}"
+  NOTIFICATIONS="[
+    {\"Notification\":{\"NotificationType\":\"ACTUAL\",\"ComparisonOperator\":\"GREATER_THAN\",\"Threshold\":100,\"ThresholdType\":\"PERCENTAGE\"},\"Subscribers\":[${subscriber}]},
+    {\"Notification\":{\"NotificationType\":\"FORECASTED\",\"ComparisonOperator\":\"GREATER_THAN\",\"Threshold\":100,\"ThresholdType\":\"PERCENTAGE\"},\"Subscribers\":[${subscriber}]}
+  ]"
+  if aws budgets describe-budget --region us-east-1 --account-id "${ACCOUNT_ID}" \
+      --budget-name "${BUDGET_NAME}" >/dev/null 2>&1; then
+    aws budgets update-budget --region us-east-1 --account-id "${ACCOUNT_ID}" \
+      --new-budget "${BUDGET_JSON}" >/dev/null && BUDGET_STATUS="updated"
+  elif aws budgets create-budget --region us-east-1 --account-id "${ACCOUNT_ID}" \
+      --budget "${BUDGET_JSON}" --notifications-with-subscribers "${NOTIFICATIONS}" >/dev/null; then
+    BUDGET_STATUS="created"
+  else
+    BUDGET_STATUS="failed"
+    warn "could not create the budget - create it in the console instead:"
+    warn "Billing and Cost Management -> Budgets -> Create budget -> Monthly cost budget, \$${BUDGET_LIMIT_USD:-5}, ${BUDGET_EMAIL}"
+  fi
+fi
+
 # --- report -----------------------------------------------------------------
 
 STATUS="$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 -X POST \
@@ -172,7 +197,7 @@ echo
 echo "  parser     ${PARSER_URL}"
 echo "  logs       $(outputs LogGroupName)"
 echo "  no token   HTTP ${STATUS} (401 is right: nobody gets in without signing in)"
+echo "  budget     ${BUDGET_NAME}: ${BUDGET_STATUS} (\$${BUDGET_LIMIT_USD:-5}/month, ${BUDGET_EMAIL:-no email})"
 echo
 echo "Next: make deploy-frontend, so the site is built with PARSER_URL."
-[[ -n "${BUDGET_EMAIL}" ]] && echo "The budget alarm goes to ${BUDGET_EMAIL}."
 echo
