@@ -1,7 +1,9 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from app.schemas.agenda import Agenda
 
 
 class MeetingBase(BaseModel):
@@ -22,7 +24,7 @@ class MeetingCreate(MeetingBase):
 
 
 class MeetingOut(MeetingBase):
-    id: uuid.UUID
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
+    id: uuid.UUID
+    agenda: Agenda | None = None
