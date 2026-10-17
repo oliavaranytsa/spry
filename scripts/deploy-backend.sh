@@ -337,6 +337,14 @@ if aws lambda get-function --function-name "${REPORT_BUILDER}" >/dev/null 2>&1; 
     --image-uri "${IMAGE_URI}" --query LastUpdateStatus --output text >/dev/null
 fi
 
+# The agenda parser (infra/ai.yml) runs this image too, for the same reason.
+AGENDA_PARSER="${PROJECT_NAME}-agenda-parser"
+if aws lambda get-function --function-name "${AGENDA_PARSER}" >/dev/null 2>&1; then
+  log "moving ${AGENDA_PARSER} to the new image"
+  aws lambda update-function-code --function-name "${AGENDA_PARSER}" \
+    --image-uri "${IMAGE_URI}" --query LastUpdateStatus --output text >/dev/null
+fi
+
 # --- report -----------------------------------------------------------------
 
 API_URL="$(outputs ApiUrl)"
