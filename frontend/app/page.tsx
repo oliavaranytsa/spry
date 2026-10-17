@@ -8,6 +8,7 @@ import { useAuth } from "react-oidc-context";
 import { AuthStatus } from "@/components/auth-status";
 import { MeetingCard } from "@/components/meeting-card";
 import { SpryMascot } from "@/components/spry-mascot";
+import { Sticker } from "@/components/stickers";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { WakingUp } from "@/components/waking-up";
 import type { Meeting } from "@/lib/meetings";
@@ -160,7 +161,7 @@ export default function MeetingsPage() {
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-ink/60">
             This week and beyond
           </p>
-          <h2 className="font-display text-4xl md:text-5xl font-extrabold leading-[1.05] mt-2">
+          <h2 className="relative font-display text-4xl md:text-5xl font-extrabold leading-[1.05] mt-2">
             {signedOut
               ? "Sign in, and let's get your week in order."
               : thisWeekCount > 0
@@ -170,13 +171,40 @@ export default function MeetingsPage() {
                   : "A clear week. Plan something?"}
           </h2>
         </div>
-        <SpryMascot className="hidden md:block w-28 h-28 shrink-0 -mb-2 -rotate-6" />
+        <div className="relative hidden md:block w-56 h-36 shrink-0 -mb-2">
+          <Sticker
+            kind="bubble"
+            className="absolute -top-6 left-0 w-24 h-24"
+            rotate={-8}
+          />
+          <SpryMascot className="absolute bottom-0 right-6 w-28 h-28 -rotate-6" />
+          <Sticker
+            kind="coffee"
+            className="absolute bottom-0 left-6 w-14 h-14"
+            rotate={10}
+          />
+          <Sticker
+            kind="sparkle"
+            className="absolute -top-4 right-0 w-10 h-10"
+            rotate={15}
+          />
+        </div>
       </section>
 
       <main className="max-w-5xl mx-auto px-6 py-8 grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Left: Schedule Form */}
         <div className="md:col-span-1">
-          <div className="bg-paper p-6 rounded-3xl border-2 border-ink shadow-sticker sticky top-8">
+          <div className="relative bg-paper p-6 rounded-3xl border-2 border-ink shadow-sticker sticky top-8">
+            <Sticker
+              kind="heart"
+              className="absolute -top-5 -right-4 w-12 h-12"
+              rotate={14}
+            />
+            <Sticker
+              kind="clock"
+              className="absolute -bottom-6 -left-5 w-12 h-12"
+              rotate={-12}
+            />
             <div className="flex items-center gap-2 mb-5">
               <span className="w-8 h-8 rounded-full bg-lime border-2 border-ink flex items-center justify-center">
                 <Plus className="w-4 h-4" strokeWidth={3} />
@@ -291,6 +319,10 @@ export default function MeetingsPage() {
           ) : meetings.length === 0 ? (
             <div className="p-10 text-center bg-paper border-2 border-dashed border-ink rounded-3xl">
               <SpryMascot className="w-24 h-24 mx-auto mb-3" />
+              <Sticker
+                kind="rainbow"
+                className="w-20 h-20 mx-auto -mt-2 mb-1"
+              />
               <h3 className="font-display font-extrabold text-xl mb-1">
                 No meetings yet
               </h3>

@@ -273,3 +273,24 @@
 .dark .text-lime {
   color: #5d7012;
 }
+
+/* Stickers sit at a slight angle and wobble a little, like they were just
+   slapped on. Respect reduced motion. */
+.sticker {
+  transform: rotate(var(--r, 0deg));
+  animation: sticker-wobble 6s ease-in-out infinite;
+}
+@keyframes sticker-wobble {
+  0%,
+  100% {
+    transform: rotate(var(--r, 0deg)) translateY(0);
+  }
+  50% {
+    transform: rotate(calc(var(--r, 0deg) + 4deg)) translateY(-3px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sticker {
+    animation: none;
+  }
+}

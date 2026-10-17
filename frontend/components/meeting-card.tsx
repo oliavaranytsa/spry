@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Clock, Pencil, Trash2, Users } from "lucide-react";
 
 import { AgendaPanel } from "@/components/agenda-panel";
+import { Sticker } from "@/components/stickers";
 import type { Agenda } from "@/lib/agenda";
 import {
   deleteMeeting,
@@ -115,7 +116,7 @@ export function MeetingCard({
 
   return (
     <article
-      className={`bg-paper p-5 rounded-3xl border-2 border-ink shadow-sticker transition-transform hover:-translate-y-0.5 ${
+      className={`relative bg-paper p-5 rounded-3xl border-2 border-ink shadow-sticker transition-transform hover:-translate-y-0.5 ${
         status.tone === "done" ? "opacity-75" : ""
       }`}
     >
@@ -284,6 +285,14 @@ export function MeetingCard({
         </div>
       </div>
 
+      {/* A reward sticker once a meeting has its agenda. */}
+      {m.agenda && m.agenda.items.length > 0 && (
+        <Sticker
+          kind={status.tone === "done" ? "check" : "star"}
+          className="absolute -bottom-4 -right-3 w-11 h-11"
+          rotate={status.tone === "done" ? -8 : 12}
+        />
+      )}
       <AgendaPanel
         meetingId={m.id}
         agenda={m.agenda}
