@@ -33,7 +33,7 @@ export default function LoginPage() {
   }, [auth, router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-700">
+    <div className="min-h-screen flex items-center justify-center bg-cream text-ink font-semibold">
       {!authConfigured ? (
         <p className="text-sm">
           Sign-in is not configured: run make deploy-cognito, then rebuild.

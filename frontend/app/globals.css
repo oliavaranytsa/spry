@@ -226,3 +226,24 @@
   /* The default page block: hairline border, no fill, no lift. */
   @apply rounded-xl border border-border bg-card;
 }
+
+/* Spry's own look: cobalt ink on warm paper, a lime highlight, a coral
+   warning, and thick outlines with a hard offset shadow, like a sticker. */
+@theme {
+  --color-ink: #2f3a8f;
+  --color-ink-deep: #232c70;
+  --color-ink-soft: #e6e8f7;
+  --color-cream: #fbf1de;
+  --color-paper: #fffaf1;
+  --color-lime: #d9f15c;
+  --color-lime-soft: #f3fbcf;
+  --color-coral: #f27b5b;
+  --color-coral-soft: #fde6df;
+
+  --font-display:
+    var(--font-display-family), var(--font-notion-sans), ui-sans-serif,
+    system-ui, sans-serif;
+
+  --shadow-sticker: 4px 4px 0 0 #2f3a8f;
+  --shadow-sticker-sm: 2px 2px 0 0 #2f3a8f;
+}

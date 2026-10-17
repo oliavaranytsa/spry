@@ -10,7 +10,7 @@ export function AuthStatus() {
   const auth = useAuth();
 
   if (auth.isLoading) {
-    return <span className="text-xs text-slate-400">…</span>;
+    return <span className="text-xs text-cream/60">…</span>;
   }
 
   if (auth.isAuthenticated) {
@@ -22,12 +22,15 @@ export function AuthStatus() {
     };
     return (
       <div className="flex items-center gap-3">
-        <span className="text-sm font-medium text-slate-700" title="Signed in">
+        <span
+          className="hidden sm:inline text-sm font-semibold text-cream/90"
+          title="Signed in"
+        >
           {email}
         </span>
         <button
           onClick={signOut}
-          className="text-xs border border-slate-300 hover:bg-slate-100 px-3 py-1.5 rounded-lg"
+          className="text-xs font-bold border-2 border-cream text-cream hover:bg-cream hover:text-ink px-3 py-1.5 rounded-full transition-colors"
         >
           Sign out
         </button>
@@ -45,14 +48,14 @@ export function AuthStatus() {
               extraQueryParams: { identity_provider: "Google" },
             })
           }
-          className="text-xs border border-slate-300 hover:bg-slate-100 px-3 py-1.5 rounded-lg"
+          className="text-xs font-bold border-2 border-cream text-cream hover:bg-cream hover:text-ink px-3 py-1.5 rounded-full transition-colors"
         >
           Sign in with Google
         </button>
       )}
       <Link
         href="/login"
-        className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg"
+        className="text-xs font-bold bg-lime text-ink border-2 border-lime hover:border-cream px-3 py-1.5 rounded-full transition-colors"
       >
         Sign in
       </Link>

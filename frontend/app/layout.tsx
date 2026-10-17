@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Inter } from "next/font/google";
+import { Bricolage_Grotesque, Geist_Mono, Inter } from "next/font/google";
 
 import { Providers } from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";
@@ -12,14 +12,21 @@ const inter = Inter({
   display: "swap",
 });
 
+// Chunky display face for the wordmark, headings and dates.
+const display = Bricolage_Grotesque({
+  variable: "--font-display-family",
+  subsets: ["latin"],
+  display: "swap",
+});
+
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "Peach",
-  description: "FastAPI + Next.js + Postgres starter",
+  title: "Spry",
+  description: "Meetings and their agendas, sorted.",
 };
 
 export default function RootLayout({
@@ -28,7 +35,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${display.variable} ${geistMono.variable} h-full antialiased`}
     >
       {/* Extensions such as Grammarly stamp attributes on <body> before React
           hydrates; this silences that one-level mismatch only. */}

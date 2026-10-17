@@ -18,13 +18,13 @@ export default function AuthCallbackPage() {
   }, [auth.isAuthenticated, router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-700">
+    <div className="min-h-screen flex items-center justify-center bg-cream text-ink font-semibold">
       {auth.error ? (
         <div className="text-center space-y-2">
           <p className="text-sm text-red-700">
             Sign-in failed: {auth.error.message}
           </p>
-          <Link href="/login" className="text-sm text-blue-600 underline">
+          <Link href="/login" className="text-sm text-ink font-bold underline">
             Try again
           </Link>
         </div>
