@@ -32,6 +32,9 @@ Parameters:
       - anthropic.claude-opus-5-5
       - anthropic.claude-sonnet-5-5
       - anthropic.claude-haiku-5-5
+      # Not on bedrock-mantle: called through bedrock-runtime and a global
+      # inference profile (app/ai/agenda.py, bedrock_client).
+      - global.anthropic.claude-haiku-4-5-20251001-v1:0
 
   ParserRegion:
     Type: String
@@ -79,6 +82,10 @@ Resources:
               # "*" for now; narrowing it is a discussion question of the lab.
               - Effect: Allow
                 Action: bedrock-mantle:CreateInference
+                Resource: "*"
+              # Models served by bedrock-runtime (through an inference profile).
+              - Effect: Allow
+                Action: bedrock:InvokeModel
                 Resource: "*"
       Tags:
         - Key: PROJECT_NAME

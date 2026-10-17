@@ -38,6 +38,8 @@ PRICES: dict[str, tuple[float, float]] = {
     "anthropic.claude-opus-5-5": (4.00, 20.00),
     "anthropic.claude-sonnet-5-5": (2.00, 10.00),
     "anthropic.claude-haiku-5-5": (0.10, 0.50),
+    # Served by bedrock-runtime, not bedrock-mantle (see bedrock_client).
+    "global.anthropic.claude-haiku-4-5-20251001-v1:0": (1.00, 5.00),
 }
 
 
@@ -82,13 +84,31 @@ SYSTEM = (
 )
 
 
-@cache
-def bedrock_client():
-    """One client per process. Imported here so the rest of the app, and its
-    tests, do not need the anthropic package to be importable."""
-    from anthropic import AnthropicBedrockMantle
+def uses_mantle(model: str) -> bool:
+    """Current Claude models (anthropic.claude-opus-5-5, ...) are served by the
+    Anthropic Messages API on bedrock-mantle. Older ones, called through an
+    inference profile such as global.anthropic.claude-haiku-4-5-20251001-v1:0,
+    only by bedrock-runtime. Same request shape, another client."""
+    return model.startswith("anthropic.") and ":" not in model
 
-    return AnthropicBedrockMantle(aws_region=get_settings().parser_region)
+
+@cache
+def bedrock_client(model: str):
+    """One client per process and endpoint. Imported here so the rest of the
+    app, and its tests, do not need the anthropic package to be importable."""
+    region = get_settings().parser_region
+    if uses_mantle(model):
+        from anthropic import AnthropicBedrockMantle
+
+        return AnthropicBedrockMantle(aws_region=region)
+    from anthropic import AnthropicBedrock
+
+    return AnthropicBedrock(aws_region=region)
+
+
+def model_options(model: str) -> dict[str, Any]:
+    """effort exists on the current models only; older ones reject it."""
+    return {"output_config": {"effort": "low"}} if uses_mantle(model) else {}
 
 
 def cost_usd(model: str, usage: dict[str, int]) -> float:
@@ -110,10 +130,10 @@ def parse_agenda(text: str, today: date, tz: str) -> tuple[ParsedAgenda, dict[st
     ]
     usage = {"input_tokens": 0, "output_tokens": 0}
     for _ in range(2):  # one retry, then give up
-        msg = bedrock_client().messages.create(
+        msg = bedrock_client(model).messages.create(
             model=model,
             max_tokens=4096,
-            output_config={"effort": "low"},
+            **model_options(model),
             system=SYSTEM,
             tools=[RECORD_AGENDA],
             messages=messages,

@@ -42,7 +42,7 @@ class FakeClient:
 def fake(monkeypatch):
     def install(*replies):
         client = FakeClient(*replies)
-        monkeypatch.setattr(agenda, "bedrock_client", lambda: client)
+        monkeypatch.setattr(agenda, "bedrock_client", lambda model: client)
         return client
 
     return install
@@ -88,3 +88,12 @@ def test_cost() -> None:
     assert cost_usd("anthropic.claude-opus-5-5", usage) == pytest.approx(0.018)
     assert cost_usd("anthropic.claude-haiku-5-5", usage) == pytest.approx(0.00045)
     assert cost_usd("unknown", usage) == 0
+
+
+def test_endpoint_and_options_follow_the_model() -> None:
+    assert agenda.uses_mantle("anthropic.claude-opus-5-5")
+    assert agenda.model_options("anthropic.claude-opus-5-5") == {"output_config": {"effort": "low"}}
+    haiku = "global.anthropic.claude-haiku-4-5-20251001-v1:0"
+    assert not agenda.uses_mantle(haiku)
+    assert agenda.model_options(haiku) == {}
+    assert cost_usd(haiku, {"input_tokens": 2000, "output_tokens": 500}) == pytest.approx(0.0045)
