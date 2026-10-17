@@ -1,0 +1,3 @@
+Let's meet next Tuesday after lunch to go over the launch checklist.
+Topics: QA sign-off (Dmytro), marketing copy (Iryna), rollback plan.
+Dmytro should send the test report by end of week, and Iryna shares the final copy the day before the meeting.

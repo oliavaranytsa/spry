@@ -1,6 +1,6 @@
 COMPOSE := docker compose
 
-.PHONY: help up down build logs ps migrate revision test test-backend test-frontend lint fmt clean shell-backend shell-db deploy-cognito destroy-cognito deploy-backend destroy-backend logs-backend migrate-backend cert domain deploy-frontend destroy-frontend github-role deploy-reports destroy-reports report-now logs-reports
+.PHONY: help up down build logs ps migrate revision test test-backend test-frontend lint fmt clean shell-backend shell-db deploy-cognito destroy-cognito deploy-backend destroy-backend logs-backend migrate-backend cert domain deploy-frontend destroy-frontend github-role deploy-reports destroy-reports report-now logs-reports llm-hello parse
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
@@ -96,3 +96,11 @@ report-now: ## Build a report on demand through the queue: make report-now WEEK=
 
 logs-reports: ## Which event started each report run, from CloudWatch: SINCE=24h make logs-reports
 	./scripts/logs-reports.sh
+
+llm-hello: ## First call to Claude on Bedrock: prints the answer, stop_reason and usage
+	./scripts/llm.sh app.ai.hello
+
+parse: ## Run the agenda parser locally: make parse TEXT="..." or make parse FILE=docs/lab6/inputs/1-uk.txt
+	@if [ -n "$(FILE)" ]; then ./scripts/llm.sh app.ai.agenda < "$(FILE)"; \
+	elif [ -n "$(TEXT)" ]; then ./scripts/llm.sh app.ai.agenda "$(TEXT)"; \
+	else echo 'usage: make parse TEXT="..." or make parse FILE=path'; exit 1; fi

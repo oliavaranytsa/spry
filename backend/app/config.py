@@ -33,6 +33,12 @@ class Settings(BaseSettings):
     # them; left empty elsewhere, and they are downloaded from the issuer.
     cognito_jwks: str = ""
 
+    # The agenda parser (Lab 6). Bedrock is called in us-east-1 whatever region
+    # the rest of Spry runs in. PARSER_MODEL=anthropic.claude-haiku-5-5 swaps
+    # the model without touching the code.
+    parser_model: str = "anthropic.claude-opus-5-5"
+    parser_region: str = "us-east-1"
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def _split_origins(cls, value: object) -> object:
