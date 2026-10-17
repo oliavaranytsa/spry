@@ -80,7 +80,9 @@ export async function parseAgenda(
   signal: AbortSignal,
 ): Promise<ParseResult> {
   if (!PARSER_URL) {
-    throw new AgendaError("The parser is not configured. Type the agenda by hand.");
+    throw new AgendaError(
+      "The parser is not configured. Type the agenda by hand.",
+    );
   }
   if (text.length > MAX_TEXT_CHARS) {
     throw new AgendaError(PARSE_ERRORS[413]);
@@ -118,7 +120,8 @@ export async function parseAgenda(
 
   if (!res.ok) {
     throw new AgendaError(
-      PARSE_ERRORS[res.status] ?? `The parser failed (HTTP ${res.status}). Type the agenda by hand.`,
+      PARSE_ERRORS[res.status] ??
+        `The parser failed (HTTP ${res.status}). Type the agenda by hand.`,
     );
   }
   return (await res.json()) as ParseResult;

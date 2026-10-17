@@ -1,7 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ClipboardPaste, ListChecks, Loader2, Plus, Sparkles, X } from "lucide-react";
+import {
+  ClipboardPaste,
+  ListChecks,
+  Loader2,
+  Plus,
+  Sparkles,
+  X,
+} from "lucide-react";
 
 import {
   AgendaError,
@@ -36,7 +43,8 @@ const newAction = (): Row<ActionField> => ({
   suggested: [],
 });
 
-const str = (v: string | number | null | undefined) => (v == null ? "" : String(v));
+const str = (v: string | number | null | undefined) =>
+  v == null ? "" : String(v);
 const orNull = (v: string) => (v.trim() === "" ? null : v.trim());
 
 // Fields the model filled: everything non-empty. Empty stays empty, unmarked.
@@ -46,7 +54,11 @@ function filled<F extends string>(values: Record<F, string>): F[] {
 
 function rowsFrom(agenda: Agenda, suggested: boolean) {
   const items = agenda.items.map((it) => {
-    const values = { topic: it.topic, owner: str(it.owner), minutes: str(it.minutes) };
+    const values = {
+      topic: it.topic,
+      owner: str(it.owner),
+      minutes: str(it.minutes),
+    };
     return { id: nextId++, values, suggested: suggested ? filled(values) : [] };
   });
   const actions = agenda.action_items.map((a) => {
@@ -143,7 +155,10 @@ export function AgendaPanel({
     setError(null);
     setElapsed(0);
     const started = Date.now();
-    const timer = setInterval(() => setElapsed(Math.round((Date.now() - started) / 1000)), 500);
+    const timer = setInterval(
+      () => setElapsed(Math.round((Date.now() - started) / 1000)),
+      500,
+    );
     try {
       const result = await parseAgenda(pasted, token, controller.signal);
       const rows = rowsFrom(result.agenda, true);
@@ -191,8 +206,12 @@ export function AgendaPanel({
       setError("Sign in to save the agenda.");
       return;
     }
-    const keptItems = items.filter((r) => Object.values(r.values).some((v) => v.trim()));
-    const keptActions = actions.filter((r) => Object.values(r.values).some((v) => v.trim()));
+    const keptItems = items.filter((r) =>
+      Object.values(r.values).some((v) => v.trim()),
+    );
+    const keptActions = actions.filter((r) =>
+      Object.values(r.values).some((v) => v.trim()),
+    );
     if (keptItems.some((r) => !r.values.topic.trim())) {
       setError("Every agenda item needs a topic.");
       return;
@@ -214,7 +233,11 @@ export function AgendaPanel({
       })),
     };
     const suggestion: AiSuggestion | null = parsed
-      ? { agenda: parsed.agenda, model: parsed.model, prompt_version: parsed.prompt_version }
+      ? {
+          agenda: parsed.agenda,
+          model: parsed.model,
+          prompt_version: parsed.prompt_version,
+        }
       : null;
 
     setSaving(true);
@@ -223,7 +246,9 @@ export function AgendaPanel({
       onSaved(await saveAgenda(meetingId, body, suggestion, token));
       setEditing(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save the agenda.");
+      setError(
+        err instanceof Error ? err.message : "Could not save the agenda.",
+      );
     } finally {
       setSaving(false);
     }
@@ -232,7 +257,9 @@ export function AgendaPanel({
   // --- view ----------------------------------------------------------------
 
   if (!editing) {
-    const empty = !agenda || (agenda.items.length === 0 && agenda.action_items.length === 0);
+    const empty =
+      !agenda ||
+      (agenda.items.length === 0 && agenda.action_items.length === 0);
     return (
       <div className="mt-4 pt-3 border-t border-slate-100">
         {!empty && agenda && (
@@ -241,8 +268,12 @@ export function AgendaPanel({
               {agenda.items.map((it, i) => (
                 <li key={i}>
                   {it.topic}
-                  {it.owner && <span className="text-slate-500"> — {it.owner}</span>}
-                  {it.minutes && <span className="text-slate-400"> · {it.minutes} min</span>}
+                  {it.owner && (
+                    <span className="text-slate-500"> — {it.owner}</span>
+                  )}
+                  {it.minutes && (
+                    <span className="text-slate-400"> · {it.minutes} min</span>
+                  )}
                 </li>
               ))}
             </ol>
@@ -252,8 +283,12 @@ export function AgendaPanel({
                   <li key={i} className="flex items-center gap-1.5">
                     <ListChecks className="w-3.5 h-3.5 text-slate-400" />
                     {a.task}
-                    {a.owner && <span className="text-slate-500"> — {a.owner}</span>}
-                    {a.due && <span className="text-slate-400"> · by {a.due}</span>}
+                    {a.owner && (
+                      <span className="text-slate-500"> — {a.owner}</span>
+                    )}
+                    {a.due && (
+                      <span className="text-slate-400"> · by {a.due}</span>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -290,10 +325,13 @@ export function AgendaPanel({
         <div className="flex items-center justify-between gap-2">
           <span
             className={`text-[11px] ${
-              pasted.length > MAX_TEXT_CHARS ? "text-red-600 font-medium" : "text-slate-400"
+              pasted.length > MAX_TEXT_CHARS
+                ? "text-red-600 font-medium"
+                : "text-slate-400"
             }`}
           >
-            {pasted.length.toLocaleString("en-US")} / {MAX_TEXT_CHARS.toLocaleString("en-US")}
+            {pasted.length.toLocaleString("en-US")} /{" "}
+            {MAX_TEXT_CHARS.toLocaleString("en-US")}
           </span>
           {parsing ? (
             <div className="flex items-center gap-3">
@@ -312,7 +350,11 @@ export function AgendaPanel({
             <button
               onClick={parse}
               disabled={!parserConfigured || !pasted.trim()}
-              title={parserConfigured ? undefined : "PARSER_URL is not set for this build"}
+              title={
+                parserConfigured
+                  ? undefined
+                  : "PARSER_URL is not set for this build"
+              }
               className="flex items-center gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md disabled:opacity-50"
             >
               <Sparkles className="w-3.5 h-3.5" />
@@ -332,15 +374,18 @@ export function AgendaPanel({
         <div className="text-[11px] text-slate-500 bg-amber-50/60 border border-amber-100 rounded-md px-2.5 py-1.5">
           Filled by {parsed.model} ({parsed.prompt_version}) in{" "}
           {(parsed.latency_ms / 1000).toFixed(1)}s. Fields marked{" "}
-          <span className="text-amber-700 font-medium">suggested</span> came from the model:
-          check them before saving.
-          {(parsed.agenda.title || parsed.agenda.starts_at || parsed.agenda.duration_minutes) && (
+          <span className="text-amber-700 font-medium">suggested</span> came
+          from the model: check them before saving.
+          {(parsed.agenda.title ||
+            parsed.agenda.starts_at ||
+            parsed.agenda.duration_minutes) && (
             <span className="block mt-0.5">
               The text also says:{" "}
               {[
                 parsed.agenda.title && `“${parsed.agenda.title}”`,
                 parsed.agenda.starts_at && `starts ${parsed.agenda.starts_at}`,
-                parsed.agenda.duration_minutes && `${parsed.agenda.duration_minutes} min`,
+                parsed.agenda.duration_minutes &&
+                  `${parsed.agenda.duration_minutes} min`,
               ]
                 .filter(Boolean)
                 .join(", ")}
@@ -355,7 +400,10 @@ export function AgendaPanel({
           Agenda items
         </div>
         {items.map((r) => (
-          <div key={r.id} className="grid grid-cols-[1fr_9rem_5.5rem_1.5rem] gap-2 items-center">
+          <div
+            key={r.id}
+            className="grid grid-cols-[1fr_9rem_5.5rem_1.5rem] gap-2 items-center"
+          >
             <SuggestedInput
               placeholder="Topic"
               value={r.values.topic}
@@ -378,7 +426,9 @@ export function AgendaPanel({
               onChange={(v) => edit(setItems, r.id, "minutes", v)}
             />
             <button
-              onClick={() => setItems((rows) => rows.filter((x) => x.id !== r.id))}
+              onClick={() =>
+                setItems((rows) => rows.filter((x) => x.id !== r.id))
+              }
               className="text-slate-400 hover:text-red-600"
               aria-label="Remove item"
             >
@@ -399,7 +449,10 @@ export function AgendaPanel({
           Action items
         </div>
         {actions.map((r) => (
-          <div key={r.id} className="grid grid-cols-[1fr_9rem_9.5rem_1.5rem] gap-2 items-center">
+          <div
+            key={r.id}
+            className="grid grid-cols-[1fr_9rem_9.5rem_1.5rem] gap-2 items-center"
+          >
             <SuggestedInput
               placeholder="Task"
               value={r.values.task}
@@ -419,7 +472,9 @@ export function AgendaPanel({
               onChange={(v) => edit(setActions, r.id, "due", v)}
             />
             <button
-              onClick={() => setActions((rows) => rows.filter((x) => x.id !== r.id))}
+              onClick={() =>
+                setActions((rows) => rows.filter((x) => x.id !== r.id))
+              }
               className="text-slate-400 hover:text-red-600"
               aria-label="Remove action item"
             >

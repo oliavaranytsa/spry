@@ -112,5 +112,4 @@ destroy-ai: ## Delete the agenda-parser stack
 	./scripts/destroy-ai.sh
 
 logs-ai: ## The parser's JSON log lines (one per parse): SINCE=24h make logs-ai
-	set -a; . ./.env; set +a; aws logs tail /aws/lambda/$${PROJECT_NAME:-peach}-agenda-parser \
-		--since $${SINCE:-1h} --format short --filter-pattern '{ $$.event = "agenda_*" }'
+	./scripts/logs-ai.sh

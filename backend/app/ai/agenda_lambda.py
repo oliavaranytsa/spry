@@ -104,8 +104,14 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     try:
         agenda, usage = parse_agenda(text, today, tz)
     except AgendaParseError as e:
-        _log(event="agenda_failed", user=user, model=model, prompt_version=PROMPT_VERSION,
-             code="no_agenda", error=str(e))
+        _log(
+            event="agenda_failed",
+            user=user,
+            model=model,
+            prompt_version=PROMPT_VERSION,
+            code="no_agenda",
+            error=str(e),
+        )
         return _error(422, "no_agenda", str(e))
     except anthropic.RateLimitError:
         _log(event="agenda_failed", user=user, model=model, code="busy")
