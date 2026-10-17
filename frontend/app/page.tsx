@@ -5,7 +5,9 @@ import Link from "next/link";
 import { Calendar, Clock, Plus, Users } from "lucide-react";
 import { useAuth } from "react-oidc-context";
 
+import { AgendaPanel } from "@/components/agenda-panel";
 import { AuthStatus } from "@/components/auth-status";
+import type { Agenda } from "@/lib/agenda";
 
 interface Meeting {
   id: string;
@@ -13,6 +15,7 @@ interface Meeting {
   starts_at: string;
   ends_at: string;
   attendee_count: number;
+  agenda: Agenda | null;
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -324,6 +327,16 @@ export default function MeetingsPage() {
                       Confirmed
                     </span>
                   </div>
+                  <AgendaPanel
+                    meetingId={m.id}
+                    agenda={m.agenda}
+                    token={token}
+                    onSaved={(agenda) =>
+                      setMeetings((list) =>
+                        list.map((x) => (x.id === m.id ? { ...x, agenda } : x)),
+                      )
+                    }
+                  />
                 </div>
               ))}
             </div>

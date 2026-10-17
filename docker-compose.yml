@@ -55,6 +55,7 @@ services:
         NEXT_PUBLIC_COGNITO_CLIENT_ID: ${COGNITO_CLIENT_ID:-}
         NEXT_PUBLIC_COGNITO_DOMAIN: ${COGNITO_DOMAIN:-}
         NEXT_PUBLIC_COGNITO_GOOGLE_ENABLED: ${COGNITO_GOOGLE_ENABLED:-false}
+        NEXT_PUBLIC_PARSER_URL: ${PARSER_URL:-}
     restart: unless-stopped
     depends_on:
       backend:
@@ -67,6 +68,8 @@ services:
       NEXT_PUBLIC_COGNITO_CLIENT_ID: ${COGNITO_CLIENT_ID:-}
       NEXT_PUBLIC_COGNITO_DOMAIN: ${COGNITO_DOMAIN:-}
       NEXT_PUBLIC_COGNITO_GOOGLE_ENABLED: ${COGNITO_GOOGLE_ENABLED:-false}
+      # From make deploy-ai: the deployed parser, called from localhost too.
+      NEXT_PUBLIC_PARSER_URL: ${PARSER_URL:-}
       NODE_ENV: production
     ports:
       - "${FRONTEND_PORT:-3000}:3000"

@@ -62,6 +62,9 @@ API_URL="${API_URL%/}"
 [[ -n "${API_URL}" ]] || die "BACKEND_URL is not set in .env - run make deploy-backend first"
 
 log "building against ${API_URL}"
+# Optional: without it the site works, and agendas are typed by hand.
+[[ -n "${PARSER_URL:-}" ]] && log "agenda parser at ${PARSER_URL}" \
+  || log "no PARSER_URL in .env - Paste an agenda stays off (make deploy-ai)"
 
 # The Cognito ids are compiled in too; without them nobody could sign in.
 [[ -n "${COGNITO_USER_POOL_ID:-}" && -n "${COGNITO_CLIENT_ID:-}" && -n "${COGNITO_DOMAIN:-}" ]] \
@@ -112,6 +115,7 @@ log "building the static export"
 rm -rf "${APP}/out"
 (cd "${APP}" && NEXT_OUTPUT=export \
   NEXT_PUBLIC_API_URL="${API_URL}" \
+  NEXT_PUBLIC_PARSER_URL="${PARSER_URL:-}" \
   NEXT_PUBLIC_COGNITO_REGION="${COGNITO_REGION:-${AWS_REGION}}" \
   NEXT_PUBLIC_COGNITO_USER_POOL_ID="${COGNITO_USER_POOL_ID}" \
   NEXT_PUBLIC_COGNITO_CLIENT_ID="${COGNITO_CLIENT_ID}" \
@@ -152,6 +156,7 @@ aws cloudfront wait invalidation-completed \
 echo
 echo "  site       ${SITE_URL}"
 echo "  api        ${API_URL}"
+echo "  parser     ${PARSER_URL:-(none)}"
 echo "  bucket     s3://${BUCKET}"
 echo
 
