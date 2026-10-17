@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Response, status
 
 from app.db import SessionDep
 from app.models.meeting import Meeting
@@ -31,6 +31,22 @@ async def create_meeting(payload: MeetingCreate, session: SessionDep) -> Meeting
 @router.get("/{meeting_id}", response_model=MeetingOut)
 async def get_meeting(meeting_id: uuid.UUID, session: SessionDep) -> Meeting:
     return await _get_or_404(session, meeting_id)
+
+
+@router.put("/{meeting_id}", response_model=MeetingOut)
+async def update_meeting(
+    meeting_id: uuid.UUID, payload: MeetingCreate, session: SessionDep
+) -> Meeting:
+    """Change title, time or attendees, with the same rules as creating one."""
+    meeting = await _get_or_404(session, meeting_id)
+    return await meetings_service.update_meeting(session, meeting, payload)
+
+
+@router.delete("/{meeting_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_meeting(meeting_id: uuid.UUID, session: SessionDep) -> Response:
+    meeting = await _get_or_404(session, meeting_id)
+    await meetings_service.delete_meeting(session, meeting)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.put("/{meeting_id}/agenda", response_model=MeetingOut)

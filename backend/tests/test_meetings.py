@@ -95,3 +95,31 @@ async def test_save_agenda_for_missing_meeting(client: AsyncClient) -> None:
     missing = "00000000-0000-0000-0000-000000000000"
     response = await client.put(f"/api/meetings/{missing}/agenda", json=AGENDA)
     assert response.status_code == 404
+
+
+async def test_update_meeting_keeps_the_agenda(client: AsyncClient) -> None:
+    meeting_id = (await client.post("/api/meetings", json=_payload())).json()["id"]
+    await client.put(f"/api/meetings/{meeting_id}/agenda", json=AGENDA)
+
+    changed = _payload(title="lab meeting, moved", attendee_count=3)
+    response = await client.put(f"/api/meetings/{meeting_id}", json=changed)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["title"] == "lab meeting, moved"
+    assert body["attendee_count"] == 3
+    assert body["agenda"] == AGENDA
+
+
+async def test_update_meeting_validates_like_create(client: AsyncClient) -> None:
+    meeting_id = (await client.post("/api/meetings", json=_payload())).json()["id"]
+    bad = _payload(ends_at=(START - timedelta(hours=1)).isoformat())
+    response = await client.put(f"/api/meetings/{meeting_id}", json=bad)
+    assert response.status_code == 422
+
+
+async def test_delete_meeting(client: AsyncClient) -> None:
+    meeting_id = (await client.post("/api/meetings", json=_payload())).json()["id"]
+
+    assert (await client.delete(f"/api/meetings/{meeting_id}")).status_code == 204
+    assert (await client.get(f"/api/meetings/{meeting_id}")).status_code == 404
+    assert (await client.delete(f"/api/meetings/{meeting_id}")).status_code == 404

@@ -247,3 +247,29 @@
   --shadow-sticker: 4px 4px 0 0 #2f3a8f;
   --shadow-sticker-sm: 2px 2px 0 0 #2f3a8f;
 }
+
+/* Night: the same tokens with other values, so every component follows.
+   Ink and cream swap roles; lime and coral stay as accents. The toggle in the
+   header puts .dark on <html>. */
+.dark {
+  --color-ink: #f3ead6;
+  --color-ink-deep: #ffffff;
+  --color-ink-soft: #2a3166;
+  --color-cream: #141a3d;
+  --color-paper: #1c2350;
+  --color-lime-soft: #333f17;
+  --color-coral-soft: #4a2520;
+  --shadow-sticker: 4px 4px 0 0 #070a1f;
+  --shadow-sticker-sm: 2px 2px 0 0 #070a1f;
+  color-scheme: dark;
+}
+
+/* Lime and coral stay light in both modes, so what sits on them stays dark. */
+.dark .bg-lime,
+.dark .bg-coral {
+  color: #232c70;
+}
+/* On the cream date tile, a darker lime reads better. */
+.dark .text-lime {
+  color: #5d7012;
+}

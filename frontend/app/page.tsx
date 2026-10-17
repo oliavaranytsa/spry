@@ -2,24 +2,16 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Clock, Plus, RefreshCw, Users } from "lucide-react";
+import { Plus, RefreshCw } from "lucide-react";
 import { useAuth } from "react-oidc-context";
 
-import { AgendaPanel } from "@/components/agenda-panel";
 import { AuthStatus } from "@/components/auth-status";
+import { MeetingCard } from "@/components/meeting-card";
 import { SpryMascot } from "@/components/spry-mascot";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { WakingUp } from "@/components/waking-up";
-import type { Agenda } from "@/lib/agenda";
+import type { Meeting } from "@/lib/meetings";
 import { groupByWeek } from "@/lib/weeks";
-
-interface Meeting {
-  id: string;
-  title: string;
-  starts_at: string;
-  ends_at: string;
-  attendee_count: number;
-  agenda: Agenda | null;
-}
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -130,17 +122,6 @@ export default function MeetingsPage() {
     }
   };
 
-  const day = (isoStr: string) => new Date(isoStr).getDate();
-  const month = (isoStr: string) =>
-    new Date(isoStr).toLocaleDateString("en-US", { month: "short" });
-  const weekday = (isoStr: string) =>
-    new Date(isoStr).toLocaleDateString("en-US", { weekday: "short" });
-  const formatTime = (isoStr: string) =>
-    new Date(isoStr).toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-
   const field =
     "w-full px-3 py-2.5 text-sm bg-paper border-2 border-ink rounded-xl text-ink placeholder:text-ink/40 focus:outline-none focus:ring-4 focus:ring-lime";
   const label =
@@ -151,58 +132,6 @@ export default function MeetingsPage() {
   const upcomingCount = groups
     .filter((g) => g.key !== "earlier")
     .reduce((n, g) => n + g.items.length, 0);
-
-  const renderMeeting = (m: Meeting) => (
-    <article
-      key={m.id}
-      className="bg-paper p-5 rounded-3xl border-2 border-ink shadow-sticker"
-    >
-      <div className="flex items-start gap-4">
-        <div className="shrink-0 w-16 rounded-2xl bg-ink text-cream text-center py-2 border-2 border-ink">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-lime">
-            {weekday(m.starts_at)}
-          </div>
-          <div className="font-display text-3xl font-extrabold leading-none">
-            {day(m.starts_at)}
-          </div>
-          <div className="text-[11px] font-bold uppercase">
-            {month(m.starts_at)}
-          </div>
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-3">
-            <h3 className="font-display font-extrabold text-xl leading-tight break-words">
-              {m.title}
-            </h3>
-            <span className="shrink-0 text-[11px] font-bold bg-lime text-ink px-2.5 py-1 rounded-full border-2 border-ink">
-              Confirmed
-            </span>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 mt-2.5 text-xs font-semibold">
-            <span className="flex items-center gap-1 bg-ink-soft px-2.5 py-1 rounded-full">
-              <Clock className="w-3.5 h-3.5" strokeWidth={2.5} />
-              {formatTime(m.starts_at)} – {formatTime(m.ends_at)}
-            </span>
-            <span className="flex items-center gap-1 bg-ink-soft px-2.5 py-1 rounded-full">
-              <Users className="w-3.5 h-3.5" strokeWidth={2.5} />
-              {m.attendee_count}{" "}
-              {m.attendee_count === 1 ? "attendee" : "attendees"}
-            </span>
-          </div>
-        </div>
-      </div>
-      <AgendaPanel
-        meetingId={m.id}
-        agenda={m.agenda}
-        token={token}
-        onSaved={(agenda) =>
-          setMeetings((list) =>
-            list.map((x) => (x.id === m.id ? { ...x, agenda } : x)),
-          )
-        }
-      />
-    </article>
-  );
 
   return (
     <div className="min-h-screen bg-cream text-ink">
@@ -219,7 +148,10 @@ export default function MeetingsPage() {
               </p>
             </div>
           </div>
-          <AuthStatus />
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <AuthStatus />
+          </div>
         </div>
       </header>
 
@@ -386,7 +318,25 @@ export default function MeetingsPage() {
                 );
                 const cards = (
                   <div className="grid gap-5 mt-4">
-                    {g.items.map(renderMeeting)}
+                    {g.items.map((m) => (
+                      <MeetingCard
+                        key={m.id}
+                        meeting={m}
+                        token={token}
+                        onChanged={(changed) =>
+                          setMeetings((list) =>
+                            list
+                              .map((x) => (x.id === changed.id ? changed : x))
+                              .sort((p, q) =>
+                                p.starts_at.localeCompare(q.starts_at),
+                              ),
+                          )
+                        }
+                        onDeleted={(id) =>
+                          setMeetings((list) => list.filter((x) => x.id !== id))
+                        }
+                      />
+                    ))}
                   </div>
                 );
                 // Past weeks fold away so the board shows what is coming.

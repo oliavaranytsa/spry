@@ -31,6 +31,22 @@ async def create_meeting(session: AsyncSession, payload: MeetingCreate) -> Meeti
     return meeting
 
 
+async def update_meeting(
+    session: AsyncSession, meeting: Meeting, payload: MeetingCreate
+) -> Meeting:
+    """Replace the meeting's own fields. The agenda is left as it is."""
+    for field, value in payload.model_dump().items():
+        setattr(meeting, field, value)
+    await session.flush()
+    await session.refresh(meeting)
+    return meeting
+
+
+async def delete_meeting(session: AsyncSession, meeting: Meeting) -> None:
+    await session.delete(meeting)
+    await session.flush()
+
+
 async def save_agenda(session: AsyncSession, meeting: Meeting, payload: AgendaSave) -> Meeting:
     """Replace the meeting's agenda, and keep what the model suggested next to it."""
     meeting.agenda = payload.model_dump(mode="json", include={"items", "action_items"})

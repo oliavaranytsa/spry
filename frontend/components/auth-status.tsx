@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useAuth } from "react-oidc-context";
 
+import { AvatarPicker } from "@/components/avatars";
 import { cognitoLogoutUrl, googleEnabled } from "@/lib/auth";
 
 // Header corner: who is signed in, or the way to sign in.
@@ -20,8 +21,10 @@ export function AuthStatus() {
       await auth.removeUser();
       window.location.href = cognitoLogoutUrl();
     };
+    const userId = auth.user?.profile.sub ?? "me";
     return (
       <div className="flex items-center gap-3">
+        <AvatarPicker userId={userId} />
         <span
           className="hidden sm:inline text-sm font-semibold text-cream/90"
           title="Signed in"
