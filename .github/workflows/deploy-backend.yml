@@ -5,6 +5,10 @@ name: Deploy backend
 on:
   push:
     branches: [main]
+    # infra/ is HCP Terraform's: a change there is planned and applied by the
+    # workspace, and rebuilding the image for it would only waste a deploy.
+    paths-ignore:
+      - "infra/**"
   workflow_dispatch:
 
 # One deploy at a time, and never cancel one halfway: an interrupted

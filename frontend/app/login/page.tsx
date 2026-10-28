@@ -36,7 +36,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-cream text-ink font-semibold">
       {!authConfigured ? (
         <p className="text-sm">
-          Sign-in is not configured: run make deploy-cognito, then rebuild.
+          Sign-in is not configured: run make infra-env, then rebuild.
         </p>
       ) : auth.error ? (
         <p className="text-sm text-red-700">

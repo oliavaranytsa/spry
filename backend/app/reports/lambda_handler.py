@@ -1,7 +1,7 @@
 """Lambda entry point of the report builder.
 
 The same container image as the API, with a different command
-(infra/reports.yaml: ImageConfig.Command). It runs inside the VPC, next to
+(infra/reports.tf: image_config.command). It runs inside the VPC, next to
 Aurora, and writes to S3 through the free gateway endpoint. It has no route to
 anything else on the internet, which is why emailing is a separate function.
 

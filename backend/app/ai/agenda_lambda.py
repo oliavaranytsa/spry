@@ -1,6 +1,6 @@
 """Lambda entry point of the agenda parser, behind its own function URL.
 
-The same container image as the API, another command (infra/ai.yml:
+The same container image as the API, another command (infra/ai.tf:
 ImageConfig.Command). It runs outside the VPC: it needs no database, only
 Bedrock and Cognito's public keys, both reached over the internet with no NAT
 and no VPC endpoint. It only reads text and answers JSON. Saving the agenda
@@ -35,7 +35,7 @@ MAX_TEXT_CHARS = 10_000
 
 
 def _response(status: int, body: dict[str, Any]) -> dict[str, Any]:
-    # CORS headers are added by the function URL (infra/ai.yml), not here.
+    # CORS headers are added by the function URL (infra/ai.tf), not here.
     return {
         "statusCode": status,
         "headers": {"content-type": "application/json"},

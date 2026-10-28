@@ -24,7 +24,7 @@ done
 
 export AWS_DEFAULT_REGION="${AWS_REGION:-${AWS_DEFAULT_REGION:-us-east-1}}"
 
-[[ -n "${REPORTS_QUEUE_URL:-}" ]] || die "REPORTS_QUEUE_URL is not in .env - run make deploy-reports first"
+[[ -n "${REPORTS_QUEUE_URL:-}" ]] || die "REPORTS_QUEUE_URL is not in .env - run make infra-env first"
 
 WEEK="${WEEK:-}"
 if [[ -n "${WEEK}" ]]; then

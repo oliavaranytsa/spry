@@ -2,7 +2,7 @@
 
 ## What is in place
 
-- **Cognito user pool** (`infra/cognito.yaml`, `make deploy-cognito`): email and
+- **Cognito user pool** (`infra/auth.tf`, Terraform): email and
   password with self sign-up, plus Google as a federated identity provider.
   Cognito's managed login page shows both.
 - **Frontend**: `/login/` starts the authorization code flow with PKCE

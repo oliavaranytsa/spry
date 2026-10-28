@@ -203,7 +203,7 @@ if [[ -n "${COGNITO_USER_POOL_ID:-}" ]]; then
   log "fetching signing keys for ${COGNITO_USER_POOL_ID}"
   COGNITO_JWKS="$(curl -fsS --max-time 20 "${JWKS_URL}" \
     | python3 -c 'import json,sys; print(json.dumps(json.load(sys.stdin), separators=(",", ":")))')" \
-    || die "could not fetch ${JWKS_URL} - is COGNITO_USER_POOL_ID right? (make deploy-cognito)"
+    || die "could not fetch ${JWKS_URL} - is COGNITO_USER_POOL_ID right? (make infra-env)"
 else
   warn "COGNITO_USER_POOL_ID unset - keeping the stack's current Cognito settings"
 fi
@@ -327,7 +327,7 @@ fi
 
 # --- report builder ---------------------------------------------------------
 
-# The weekly-report builder (infra/reports.yaml) runs this same image with
+# The weekly-report builder (infra/reports.tf) runs this same image with
 # another command. Move it to the new image too: ECR keeps only the last three,
 # and a builder left on an expired tag stops working a few deploys later.
 REPORT_BUILDER="${PROJECT_NAME}-report-builder"
@@ -337,7 +337,7 @@ if aws lambda get-function --function-name "${REPORT_BUILDER}" >/dev/null 2>&1; 
     --image-uri "${IMAGE_URI}" --query LastUpdateStatus --output text >/dev/null
 fi
 
-# The agenda parser (infra/ai.yml) runs this image too, for the same reason.
+# The agenda parser (infra/ai.tf) runs this image too, for the same reason.
 AGENDA_PARSER="${PROJECT_NAME}-agenda-parser"
 if aws lambda get-function --function-name "${AGENDA_PARSER}" >/dev/null 2>&1; then
   log "moving ${AGENDA_PARSER} to the new image"

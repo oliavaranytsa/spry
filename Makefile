@@ -1,6 +1,6 @@
 COMPOSE := docker compose
 
-.PHONY: help up down build logs ps migrate revision test test-backend test-frontend lint fmt clean shell-backend shell-db deploy-cognito destroy-cognito deploy-backend destroy-backend logs-backend migrate-backend cert domain deploy-frontend destroy-frontend github-role deploy-reports destroy-reports report-now logs-reports llm-hello parse deploy-ai destroy-ai logs-ai
+.PHONY: help up down build logs ps migrate revision test test-backend test-frontend lint fmt clean shell-backend shell-db infra-init infra-plan infra-env deploy-backend destroy-backend logs-backend migrate-backend cert domain deploy-frontend destroy-frontend github-role report-now logs-reports llm-hello parse logs-ai
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
@@ -51,11 +51,17 @@ shell-backend: ## Shell into the backend container
 shell-db: ## psql into the database
 	$(COMPOSE) exec db psql -U $${POSTGRES_USER:-peach} -d $${POSTGRES_DB:-peach}
 
-deploy-cognito: ## Create/update the Cognito user pool; writes COGNITO_* to .env and prints them
-	./scripts/deploy-cognito.sh
+# Sign-in, the weekly report, the agenda parser and the budget are Terraform
+# (infra/*.tf, state in HCP Terraform, workspace spry-dev). A merge to main that
+# touches infra/ is planned and applied by HCP Terraform; these are for looking.
+infra-init: ## terraform init in infra/ (once; terraform login first)
+	terraform -chdir=infra init
 
-destroy-cognito: ## Delete the Cognito stack, every account in the pool included
-	./scripts/destroy-cognito.sh
+infra-plan: ## What Terraform would change, run in HCP Terraform (a speculative plan; applies nothing)
+	terraform -chdir=infra plan
+
+infra-env: ## Write the Terraform outputs (COGNITO_*, REPORTS_*, PARSER_URL) to .env
+	./scripts/infra-env.sh
 
 deploy-backend: ## Build + push the image, roll the Lambda (function URL + Aurora), migrate, write BACKEND_URL to .env
 	./scripts/deploy-backend.sh
@@ -85,12 +91,6 @@ destroy-frontend: ## Delete the frontend stack (bucket + distribution)
 github-role: ## Create the IAM role GitHub Actions assumes to deploy (OIDC, no keys)
 	./scripts/github-role.sh
 
-deploy-reports: ## Weekly report: queue, schedule, builder + mailer Lambdas, bucket, SES (after deploy-backend)
-	./scripts/deploy-reports.sh
-
-destroy-reports: ## Delete the report stack, the reports bucket included
-	./scripts/destroy-reports.sh
-
 report-now: ## Build a report on demand through the queue: make report-now WEEK=2026-W39
 	./scripts/report-now.sh
 
@@ -104,12 +104,6 @@ parse: ## Run the agenda parser locally: make parse TEXT="..." or make parse FIL
 	@if [ -n "$(FILE)" ]; then ./scripts/llm.sh app.ai.agenda < "$(FILE)"; \
 	elif [ -n "$(TEXT)" ]; then ./scripts/llm.sh app.ai.agenda "$(TEXT)"; \
 	else echo 'usage: make parse TEXT="..." or make parse FILE=path'; exit 1; fi
-
-deploy-ai: ## Agenda parser Lambda + function URL + $5 budget alarm (after deploy-backend); writes PARSER_URL
-	./scripts/deploy-ai.sh
-
-destroy-ai: ## Delete the agenda-parser stack
-	./scripts/destroy-ai.sh
 
 logs-ai: ## The parser's JSON log lines (one per parse): SINCE=24h make logs-ai
 	./scripts/logs-ai.sh

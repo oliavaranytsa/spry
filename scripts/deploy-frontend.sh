@@ -64,11 +64,11 @@ API_URL="${API_URL%/}"
 log "building against ${API_URL}"
 # Optional: without it the site works, and agendas are typed by hand.
 [[ -n "${PARSER_URL:-}" ]] && log "agenda parser at ${PARSER_URL}" \
-  || log "no PARSER_URL in .env - Paste an agenda stays off (make deploy-ai)"
+  || log "no PARSER_URL in .env - Paste an agenda stays off (make infra-env)"
 
 # The Cognito ids are compiled in too; without them nobody could sign in.
 [[ -n "${COGNITO_USER_POOL_ID:-}" && -n "${COGNITO_CLIENT_ID:-}" && -n "${COGNITO_DOMAIN:-}" ]] \
-  || die "COGNITO_* are not set in .env - run make deploy-cognito first"
+  || die "COGNITO_* are not set in .env - run make infra-env first"
 
 # The function URL is always HTTPS; plain HTTP here means a hand-edited .env.
 [[ "${API_URL}" == https://* ]] \
@@ -162,8 +162,8 @@ echo
 
 echo "  login      ${SITE_URL}/login/"
 echo
-echo "If this was the first frontend deploy, run make deploy-cognito again so"
-echo "Cognito may redirect back to ${SITE_URL}."
+echo "If this was the first frontend deploy, apply infra/ again (a merge to main)"
+echo "so Cognito may redirect back to ${SITE_URL}."
 echo
 echo "Now allow the site's origin through CORS:"
 echo

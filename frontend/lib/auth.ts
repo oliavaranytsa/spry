@@ -2,7 +2,7 @@ import { WebStorageStateStore } from "oidc-client-ts";
 import type { AuthProviderProps } from "react-oidc-context";
 
 // All compiled into the bundle at build time by scripts/deploy-frontend.sh,
-// which reads them from .env (written by make deploy-cognito). None of them is
+// which reads them from .env (written by make infra-env). None of them is
 // a secret: the client is public and the browser uses PKCE instead.
 const region = process.env.NEXT_PUBLIC_COGNITO_REGION ?? "us-east-1";
 const userPoolId = process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID ?? "";
@@ -15,7 +15,7 @@ export const googleEnabled =
 export const authConfigured = Boolean(userPoolId && clientId && domain);
 
 // No trailing slash: Cognito matches the callback URL exactly, and this is
-// the form infra/cognito.yaml allows.
+// the form infra/auth.tf allows.
 export const CALLBACK_PATH = "/auth/callback";
 
 const isBrowser = typeof window !== "undefined";

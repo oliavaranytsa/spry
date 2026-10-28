@@ -44,6 +44,37 @@ cd backend
 TEST_DATABASE_URL=postgresql+asyncpg://peach:peach@localhost:5432/peach_test uv run pytest -q
 ```
 
+## Infrastructure
+
+Two tools, split by how often things change:
+
+| What | Where | Tool |
+|---|---|---|
+| Sign-in (Cognito), weekly report (queue, schedule, builder, mailer, bucket, SES), agenda parser (Lambda + URL), $5 budget | `infra/*.tf` | **Terraform**, state in HCP Terraform (org `ooad_lab_oliavaranytsa`, workspace `spry-dev`) |
+| Backend (Lambda + Aurora), frontend (S3 + CloudFront), GitHub deploy role | `infra/backend.yaml`, `infra/frontend.yaml`, `infra/github-oidc.yaml` | CloudFormation, through the deploy scripts |
+
+Terraform reads the CloudFormation stacks (the site URL, the backend's image,
+VPC and database URL) through data sources; it never changes them. Why, and
+how the resources moved without being re-created:
+[ADR 0007](docs/adr/0007-terraform.md).
+
+**Changing infrastructure:** edit `infra/*.tf` on a branch and open a pull
+request. HCP Terraform posts a plan as a check on the PR; merging to `main`
+applies it. Credentials are short-lived: the workspace assumes an IAM role
+through OIDC (`infra/bootstrap/`), so no AWS key is stored anywhere.
+
+```bash
+terraform login        # once, an HCP Terraform user token
+make infra-init        # once
+make infra-plan        # what would change; applies nothing
+make infra-env         # write the outputs (COGNITO_*, REPORTS_*, PARSER_URL) to .env
+```
+
+The personal and secret inputs (`google_client_id`, `google_client_secret`,
+`reports_sender`, `budget_email`) are workspace variables, not files in the
+repository. Since the image is the application pipeline's business,
+Terraform ignores `image_uri` on the builder and the parser.
+
 ## Deploy
 
 Requires the AWS CLI configured for the account.
@@ -69,6 +100,12 @@ aws lambda get-function --function-name spry-backend --query Code.ImageUri --out
 The tag at the end of the image URI is the commit SHA.
 
 ## Tear down
+
+1. Sign-in, reports, parser, budget: in HCP Terraform, workspace `spry-dev` →
+   **Settings → Destruction and Deletion → Queue destroy plan** (the workspace
+   is VCS-driven, so a destroy from the CLI is refused). Empty the reports
+   bucket first; the user pool takes every account with it.
+2. The rest:
 
 ```bash
 make destroy-backend

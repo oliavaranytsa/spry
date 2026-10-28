@@ -1,6 +1,6 @@
 // Paste an agenda (Lab 6): the two calls the agenda panel makes.
 //
-// parseAgenda -> the parser's own function URL (infra/ai.yml). It only reads
+// parseAgenda -> the parser's own function URL (infra/ai.tf). It only reads
 //                text and answers JSON; it never writes anything.
 // saveAgenda  -> the main API, PUT /api/meetings/{id}/agenda, with its usual
 //                validation. The only way an agenda is ever written.
