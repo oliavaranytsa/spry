@@ -36,3 +36,7 @@ pgdata/
 *.tfplan
 tfplan
 crash.log
+
+# --- firebase ---
+.firebase/
+firebase-debug.log

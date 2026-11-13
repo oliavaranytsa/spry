@@ -75,6 +75,36 @@ The personal and secret inputs (`google_client_id`, `google_client_secret`,
 repository. Since the image is the application pipeline's business,
 Terraform ignores `image_uri` on the builder and the parser.
 
+## Google Cloud (Lab 9)
+
+The core of Spry also runs on Google Cloud: the site on Firebase Hosting, the
+API on Cloud Run, PostgreSQL on Cloud SQL. Sign-in, the weekly report and the
+agenda parser stay on AWS (the API on Google verifies the same Cognito tokens).
+Why: [ADR 0008](docs/adr/0008-gcp.md).
+
+`gcp/` is a separate Terraform configuration with its own HCP Terraform
+workspace (`spry-gcp`, execution mode Local). It runs with your own Google
+account; there is no service account key.
+
+```bash
+gcloud auth login && gcloud auth application-default login   # once
+gcloud config set project spry-olia-2026
+terraform -chdir=gcp init
+make gcp-apply       # APIs, Cloud SQL (~10 min), registry, secret, service accounts
+make gcp-api         # build linux/amd64, push, create/roll Cloud Run (runs migrations)
+make gcp-frontend    # static export -> Firebase Hosting, /api/** -> Cloud Run
+```
+
+Site: https://spry-olia-2026.web.app · check: `curl https://spry-olia-2026.web.app/api/health/db`
+
+**Cloud SQL does not pause.** It bills about $0.25 a day while running:
+
+```bash
+make gcp-db-stop     # storage still bills (~$1.70 a month for 10 GB)
+make gcp-db-start
+make gcp-destroy     # everything gcp/ created, the database included
+```
+
 ## Deploy
 
 Requires the AWS CLI configured for the account.

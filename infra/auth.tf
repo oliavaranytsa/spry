@@ -106,14 +106,16 @@ resource "aws_cognito_user_pool_client" "web" {
     aws_cognito_identity_provider.google[*].provider_name,
   )
 
-  callback_urls = [
-    "${var.local_frontend_url}/auth/callback",
-    "${local.site_url}/auth/callback",
-  ]
-  logout_urls = [
-    "${var.local_frontend_url}/",
-    "${local.site_url}/",
-  ]
+  # The extra sites (Lab 9: Spry on Firebase Hosting) sign in against the same
+  # pool, so one account works on both clouds.
+  callback_urls = concat(
+    ["${var.local_frontend_url}/auth/callback", "${local.site_url}/auth/callback"],
+    [for url in var.extra_frontend_urls : "${url}/auth/callback"],
+  )
+  logout_urls = concat(
+    ["${var.local_frontend_url}/", "${local.site_url}/"],
+    [for url in var.extra_frontend_urls : "${url}/"],
+  )
 
   explicit_auth_flows           = ["ALLOW_REFRESH_TOKEN_AUTH", "ALLOW_USER_SRP_AUTH"]
   prevent_user_existence_errors = "ENABLED"
