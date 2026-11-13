@@ -19,6 +19,12 @@ variable "cognito_domain_prefix" {
   description = "https://<prefix>.auth.<region>.amazoncognito.com. Changing it replaces the domain."
 }
 
+variable "extra_frontend_urls" {
+  description = "Other sites the Cognito client may redirect to, e.g. the Firebase Hosting copy of Spry (Lab 9)."
+  type        = list(string)
+  default     = []
+}
+
 variable "local_frontend_url" {
   type        = string
   default     = "http://localhost:3000"

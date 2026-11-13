@@ -6,3 +6,6 @@ cognito_domain_prefix     = "spry-olia"
 parser_model              = "global.anthropic.claude-haiku-4-5-20251001-v1:0"
 parser_log_retention_days = 30
 # Applied by HCP Terraform on every merge to main that touches infra/.
+
+# Spry on Google Cloud (Lab 9): its Firebase Hosting site signs in here too.
+extra_frontend_urls = ["https://spry-olia-2026.web.app"]

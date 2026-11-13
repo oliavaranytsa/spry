@@ -1,6 +1,6 @@
 COMPOSE := docker compose
 
-.PHONY: help up down build logs ps migrate revision test test-backend test-frontend lint fmt clean shell-backend shell-db infra-init infra-plan infra-env deploy-backend destroy-backend logs-backend migrate-backend cert domain deploy-frontend destroy-frontend github-role report-now logs-reports llm-hello parse logs-ai
+.PHONY: help up down build logs ps migrate revision test test-backend test-frontend lint fmt clean shell-backend shell-db infra-init infra-plan infra-env deploy-backend destroy-backend logs-backend migrate-backend cert domain deploy-frontend destroy-frontend github-role report-now logs-reports llm-hello parse logs-ai gcp-plan gcp-apply gcp-api gcp-frontend gcp-db-stop gcp-db-start gcp-destroy
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
@@ -81,6 +81,28 @@ cert: ## Request + DNS-validate a us-east-1 certificate for the frontend: make c
 
 domain: ## Assign a custom domain to the frontend: make domain DOMAIN=app.example.com
 	./scripts/domain-frontend.sh domain
+
+# --- Google Cloud (Lab 9): gcp/ is its own Terraform workspace, spry-gcp ---
+gcp-plan: ## What Terraform would change on Google Cloud
+	terraform -chdir=gcp plan
+
+gcp-apply: ## Apply gcp/ (APIs, Cloud SQL, registry, secrets, Cloud Run, Firebase)
+	terraform -chdir=gcp apply
+
+gcp-api: ## Build the API image (linux/amd64), push to Artifact Registry, roll Cloud Run
+	./scripts/deploy-gcp.sh api
+
+gcp-frontend: ## Build the static site against the GCP API and deploy it to Firebase Hosting
+	./scripts/deploy-gcp.sh frontend
+
+gcp-db-stop: ## Stop Cloud SQL (it does not pause on its own; storage still bills)
+	./scripts/deploy-gcp.sh db-stop
+
+gcp-db-start: ## Start Cloud SQL again
+	./scripts/deploy-gcp.sh db-start
+
+gcp-destroy: ## Remove everything gcp/ created (Cloud SQL and its data included)
+	terraform -chdir=gcp destroy
 
 deploy-frontend: ## Build the static export against BACKEND_URL and ship it to S3 + CloudFront
 	./scripts/deploy-frontend.sh
